@@ -1,4 +1,6 @@
-# StravaMCP
+# go-strava-mcp
+
+Strava MCP server (Go)
 
 <p align="center">
   <a href="https://github.com/shotah/go-strava-mcp/actions/workflows/ci.yml"><img src="https://github.com/shotah/go-strava-mcp/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
@@ -7,130 +9,88 @@
   <a href="https://pkg.go.dev/github.com/shotah/go-strava-mcp"><img src="https://pkg.go.dev/badge/github.com/shotah/go-strava-mcp.svg" alt="Go Reference"></a>
   <img src="https://img.shields.io/github/go-mod/go-version/shotah/go-strava-mcp" alt="Go version">
   <a href="LICENSE"><img src="https://img.shields.io/github/license/shotah/go-strava-mcp" alt="License"></a>
-  <a href="README.md#tool-reference"><img src="https://img.shields.io/badge/MCP_Tools-11-blue" alt="MCP Tools"></a>
 </p>
 
-**A production-grade MCP server that gives agent frameworks full access to the Strava API -- single Go binary, zero infrastructure.**
+<p align="center">
+  <strong>Give Claude, Cursor, and other MCP clients real access to your Strava data.</strong><br>
+  Activities, streams, athlete stats, clubs, uploads — one small binary, no runtime.
+</p>
 
-StravaMCP is a [Model Context Protocol](https://modelcontextprotocol.io) server built in Go. It connects AI agents to the Strava API through a single static binary running on your machine. Communicates over stdio, works with any MCP-compatible client, handles OAuth authentication through an automatic browser flow, and stores tokens locally. No cloud services, no containers, no runtime dependencies -- just download and run.
+**11 tools · server id `strava` · single binary · OAuth that just works**
 
-<!-- Terminal recording: run `vhs record.tape` to generate usage.gif, then uncomment the line below -->
-<!-- ![Usage](usage.gif) -->
-<!-- *Authentication and tool usage with an MCP client* -->
+Drop it into your MCP config and ask your agent for recent runs, HR streams, YTD totals, or to update an activity description — over stdio, with tokens stored on your machine.
 
-## How It Works
+| Service | What agents can do |
+| ------- | ------------------ |
+| **Activities** | List, get, create, update; zones and streams |
+| **Athlete** | Profile and aggregate stats |
+| **Clubs** | Recent club member activities |
+| **Uploads** | Push FIT / TCX / GPX and poll processing |
 
-```mermaid
-graph LR
-    A["MCP Client<br/>(Claude Desktop, Cursor, etc.)"] -- stdio --> B["strava-mcp<br/>Go Binary"]
-    B -- HTTPS --> C["Strava API v3"]
-    B -- read/write --> D["~/.strava/tokens.json"]
+Built for **local, single-user** AI tool use. Sibling MCP servers in the same style: [google-mcp](https://github.com/shotah/google-mcp), [go-garmin](https://github.com/shotah/go-garmin).
+
+## Why this one
+
+- **Zero runtime** — download a binary (or `go install`) and run; no Python, no Node
+- **Service-first tool names** — hosts expose `strava__activities_list`, not ambiguous `get_activities` (aligned with [google-mcp](https://github.com/shotah/google-mcp))
+- **Short server id** — MCP server name is `strava`; binary / CLI is `strava-mcp`
+- **Local-first auth** — `strava-mcp auth` once; tokens under `~/.strava/`; refresh is silent and coalesced with `singleflight`
+- **Works where you already work** — Claude Desktop, Cursor, Claude Code, and any stdio MCP client
+
+## Quick start
+
+### 1. Strava API app
+
+1. Create an application at [Strava API settings](https://www.strava.com/settings/api)
+2. Set **Authorization Callback Domain** to `localhost`
+3. Note the **Client ID** and **Client Secret**
+
+### 2. Install
+
+**Pre-built binary** (no Go required) — grab the archive for your platform from [Releases](https://github.com/shotah/go-strava-mcp/releases/latest):
+
+| Platform | File |
+| --- | --- |
+| Linux x86_64 | `strava-mcp_*_linux_amd64.tar.gz` |
+| Linux ARM64 | `strava-mcp_*_linux_arm64.tar.gz` |
+| macOS Apple Silicon | `strava-mcp_*_darwin_arm64.tar.gz` |
+| macOS Intel | `strava-mcp_*_darwin_amd64.tar.gz` |
+| Windows x86_64 | `strava-mcp_*_windows_amd64.zip` |
+
+```bash
+tar xzf strava-mcp_*_darwin_arm64.tar.gz
+chmod +x strava-mcp
+mv strava-mcp ~/.local/bin/
 ```
 
-## Features
+> **macOS Gatekeeper:** if the binary was downloaded from the browser, clear quarantine first:
+> `xattr -d com.apple.quarantine strava-mcp`
 
-- **Single binary, zero runtime dependencies** -- no Docker, no cloud, no database
-- **11 MCP tools** covering activities, athlete stats, streams, clubs, and uploads
-- **Automatic OAuth browser flow** -- one command to authenticate
-- **Concurrent token refresh via singleflight** -- no thundering herd on expired tokens
-- **Atomic write-then-rename token store** -- crash-safe credential persistence
-- **Zero-CGO static binary** -- no C library dependencies, runs anywhere
-- **Cross-platform** -- macOS (Intel + Apple Silicon), Linux, and Windows (amd64)
-
-## Why Go?
-
-StravaMCP is written in Go for the same reason the RustyClaw ecosystem exists: **performance and simplicity matter for tool servers that agents call hundreds of times per session.**
-
-| | Go (StravaMCP) | Python | Node.js |
-|---|---|---|---|
-| **Startup time** | ~10ms | ~500ms | ~200ms |
-| **Memory footprint** | ~8MB | ~30MB | ~40MB |
-| **Binary size** | 7MB (single file) | ~50MB+ (runtime + deps) | ~60MB+ (runtime + node_modules) |
-| **Dependencies** | 3 direct | Varies (pip) | Varies (npm) |
-| **Runtime required** | None | Python interpreter | Node.js runtime |
-
-*Estimates based on known Go/Python/Node.js runtime characteristics for comparable MCP servers. Not formal benchmarks.*
-
-## Quick Start
-
-### Install
-
-Choose your preferred installation method:
-
-**Option A: Go install**
+**Or with Go** (1.26+):
 
 ```bash
 go install github.com/shotah/go-strava-mcp@latest
 ```
 
-**Option B: Download binary**
-
-Download the latest binary for your platform from [GitHub Releases](https://github.com/shotah/go-strava-mcp/releases/latest).
-
-> **macOS Gatekeeper note:** If you download the binary directly, macOS may quarantine it. Remove the quarantine attribute before running:
-> ```bash
-> xattr -d com.apple.quarantine strava-mcp
-> ```
-
-### Set Up Strava API Credentials
-
-1. Create a Strava API application at [https://www.strava.com/settings/api](https://www.strava.com/settings/api)
-2. Set the **Authorization Callback Domain** to `localhost`
-3. Export your credentials:
+### 3. Environment
 
 ```bash
-export STRAVA_CLIENT_ID=your_client_id
-export STRAVA_CLIENT_SECRET=your_client_secret
+export STRAVA_CLIENT_ID="your_client_id"
+export STRAVA_CLIENT_SECRET="your_client_secret"
+# optional: STRAVA_TOKEN_PATH=~/.strava/tokens.json
 ```
 
-### Authenticate
-
-Run the built-in OAuth flow. This opens your browser, completes authorization, and saves tokens locally:
+### 4. Authenticate
 
 ```bash
 strava-mcp auth
 ```
 
-You should see: `Authenticated as [Your Name]!`
+Opens a browser, completes OAuth, writes tokens locally. You should see `Authenticated as [Your Name]!`.
 
-### Configure Your MCP Client
+### 5. MCP client config
 
-Add StravaMCP to your client's configuration. For **Claude Desktop**, edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "strava": {
-      "command": "strava-mcp",
-      "env": {
-        "STRAVA_CLIENT_ID": "your_client_id",
-        "STRAVA_CLIENT_SECRET": "your_client_secret"
-      }
-    }
-  }
-}
-```
-
-Restart your MCP client and the Strava tools will be available.
-
-## Agent Framework Integration
-
-StravaMCP is one of several high-performance MCP servers under [shotah](https://github.com/shotah) that give AI agents access to external services via stdio transport.
-
-```mermaid
-graph TD
-    AF["Agent Framework<br/>(OpenClaw / ZeroClaw)"]
-    AF -- stdio --> SM["StravaMCP<br/>Go &middot; 7MB"]
-    AF -- stdio --> SK["SlackMCP<br/>Rust"]
-    AF -- stdio --> WR["WebResearchMCP<br/>Rust"]
-    AF -- stdio --> VM["VideoMCP<br/>Rust"]
-    SM -- HTTPS --> SA["Strava API v3"]
-    SK -- HTTPS --> SKA["Slack API"]
-    WR -- HTTPS --> WRA["Web Search APIs"]
-    VM -- HTTPS --> VMA["Video APIs"]
-```
-
-To wire StravaMCP into an agent framework as a tool provider, add it to your MCP server configuration:
+Use server id **`strava`** so hosts expose tools as `strava__activities_list`.
 
 ```json
 {
@@ -146,97 +106,76 @@ To wire StravaMCP into an agent framework as a tool provider, add it to your MCP
 }
 ```
 
-The agent framework launches StravaMCP as a subprocess, communicates over stdio using the MCP protocol, and routes tool calls to Strava. No HTTP server, no port configuration -- stdio transport handles everything.
+Restart the client. Ask things like “what were my last five runs?” or “show heart-rate stream for activity 123”.
 
-<details>
-<summary><strong>Tool Reference (11 tools)</strong></summary>
+## Tool reference
 
-| Tool | Category | Description |
-|------|----------|-------------|
-| `activities_list` | Activities | List recent activities with date filtering and pagination |
-| `activities_get` | Activities | Get detailed activity info including laps, splits, and segment efforts |
-| `activities_create` | Activities | Create a new manual activity |
-| `activities_update` | Activities | Update an existing activity (name, description, sport type, gear) |
-| `activities_get_zones` | Activities | Get heart rate and power zone distribution |
-| `athlete_get` | Athlete | Get authenticated athlete profile |
-| `athlete_get_stats` | Athlete | Get aggregate statistics (recent/YTD/all-time totals) |
-| `activities_get_streams` | Streams | Get time-series telemetry data (HR, GPS, power, cadence, altitude) |
-| `clubs_list_activities` | Clubs | List recent activities from club members |
-| `uploads_create` | Uploads | Upload activity files (GPX, TCX, FIT) |
-| `uploads_get` | Uploads | Check upload processing status |
+Host-facing names are `{server}__{tool}` → e.g. `strava__activities_list`.
 
-</details>
+| Tool | Description |
+| --- | --- |
+| `activities_list` | Recent activities (date filters, pagination) |
+| `activities_get` | Full activity detail (laps, splits, segments) |
+| `activities_create` | Create a manual activity |
+| `activities_update` | Update name, description, sport type, gear |
+| `activities_get_zones` | HR / power zone distribution |
+| `activities_get_streams` | Time-series telemetry (HR, GPS, power, …) |
+| `athlete_get` | Authenticated athlete profile |
+| `athlete_get_stats` | Recent / YTD / all-time totals |
+| `clubs_list_activities` | Recent activities from club members |
+| `uploads_create` | Upload FIT / TCX / GPX |
+| `uploads_get` | Upload processing status |
 
-<details>
-<summary><strong>Architecture</strong></summary>
-
-```mermaid
-graph TD
-    M["main.go"] --> AUTH["auth subcommand"]
-    M --> MCP["MCP Server (default)"]
-
-    AUTH --> OAUTH["OAuth Browser Flow"]
-    OAUTH --> TS["Token Store<br/>~/.strava/tokens.json"]
-
-    MCP --> TH["Tool Handlers<br/>(11 tools)"]
-    TH --> SC["Strava Client"]
-    SC --> AR["Auto Token Refresh<br/>+ singleflight"]
-    AR --> TS
-    SC --> API["Strava API v3"]
-```
-
-**Key design decisions:**
-
-- **stderr-only logging** -- all logging via `slog` to stderr; stdout is reserved exclusively for MCP JSON-RPC protocol messages
-- **singleflight.Group** -- concurrent token refresh requests are coalesced into a single Strava API call, preventing thundering herd
-- **Atomic write-then-rename token store** -- token file updates are crash-safe; partial writes never corrupt saved credentials
-- **Static binary with zero CGO** -- compiles to a single static binary with no C dependencies, enabling simple cross-platform distribution
-
-</details>
+Release builds also register `utility_check_update` / `utility_self_update` (not present on `dev` builds).
 
 ## Configuration
 
 | Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `STRAVA_CLIENT_ID` | Yes | *(none)* | Strava API application client ID |
-| `STRAVA_CLIENT_SECRET` | Yes | *(none)* | Strava API application client secret |
-| `STRAVA_TOKEN_PATH` | No | `~/.strava/tokens.json` | Path to token storage file |
+| --- | --- | --- | --- |
+| `STRAVA_CLIENT_ID` | Yes | — | Strava API client ID |
+| `STRAVA_CLIENT_SECRET` | Yes | — | Strava API client secret |
+| `STRAVA_TOKEN_PATH` | No | `~/.strava/tokens.json` | Token store path |
+| `STRAVA_MCP_NO_UPDATE_CHECK` | No | unset | Set to skip background update check on startup |
 
-### CLI Flags
+### CLI
 
-| Flag | Description |
-|------|-------------|
-| `strava-mcp auth` | Run OAuth browser flow to authenticate |
-| `strava-mcp --version` | Print version, commit, and build date |
-| `strava-mcp --debug` | Enable debug-level logging |
+| Command | Description |
+| --- | --- |
 | `strava-mcp` | Start MCP server on stdio (default) |
+| `strava-mcp auth` | OAuth browser flow |
+| `strava-mcp --version` | Version / commit / build date |
+| `strava-mcp --check-update` | Print whether a newer release exists |
+| `strava-mcp --update` | Self-update from GitHub Releases |
+| `strava-mcp --debug` | Debug logging on stderr |
+
+Stdout is reserved for MCP JSON-RPC; all logs go to stderr.
 
 ## Development
 
 ```bash
-# Build
-go build .
-
-# Run tests
-go test ./...
-
-# Run with debug logging
-STRAVA_CLIENT_ID=xxx STRAVA_CLIENT_SECRET=xxx ./strava-mcp --debug
+make tools          # goimports-reviser + golangci-lint
+make install-hooks  # pre-commit: fmt → lint → test + ≥70% coverage
+make check          # same gate as CI
+make coverage       # coverprofile + threshold
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
+```bash
+go test ./...
+STRAVA_CLIENT_ID=… STRAVA_CLIENT_SECRET=… go run . --debug
+```
+
+CI builds, lints, enforces **≥70%** coverage on `./...`, and publishes a coverage badge to `gh-pages`. Releases are cut with `make release` (GoReleaser on `v*` tags).
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
 
 ## License
 
 [ISC](LICENSE)
 
-## Contributing
-
-Found a bug or have an idea? See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines. Security issues should be reported privately via [SECURITY.md](SECURITY.md).
+Forked from [Stealinglight/StravaMCP](https://github.com/Stealinglight/StravaMCP); module path, tooling, and MCP naming reshaped for the [shotah](https://github.com/shotah) MCP set.
 
 ## Links
 
-- [Strava API Documentation](https://developers.strava.com)
-- [Model Context Protocol Specification](https://modelcontextprotocol.io)
+- [Strava API docs](https://developers.strava.com)
+- [Model Context Protocol](https://modelcontextprotocol.io)
 - [GitHub Releases](https://github.com/shotah/go-strava-mcp/releases)
-- [Security Policy](SECURITY.md)
