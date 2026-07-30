@@ -10,6 +10,7 @@ import (
 	"html"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -35,6 +36,12 @@ const (
 
 // openBrowser is the browser launcher, indirected so tests can stub it.
 var openBrowser = browser.OpenURL
+
+// callbackListenAddr is the OAuth callback bind address. Loopback-only so
+// tests (and local auth) do not open a public port and trip Windows firewall.
+var callbackListenAddr = func() string {
+	return fmt.Sprintf("127.0.0.1:%d", callbackPort)
+}
 
 const successPageHTML = `<!DOCTYPE html>
 <html>
@@ -235,8 +242,12 @@ func runOAuthFlow(cfg *config.Config, store TokenStore, logger *slog.Logger, tok
 	mux := http.NewServeMux()
 	mux.Handle(callbackPath, NewCallbackHandler(state, codeCh, errCh))
 
+	ln, err := net.Listen("tcp", callbackListenAddr())
+	if err != nil {
+		return fmt.Errorf("listen for OAuth callback: %w", err)
+	}
+
 	srv := &http.Server{
-		Addr:              fmt.Sprintf(":%d", callbackPort),
 		Handler:           mux,
 		ReadHeaderTimeout: readHeaderTimeout,
 	}
@@ -247,7 +258,7 @@ func runOAuthFlow(cfg *config.Config, store TokenStore, logger *slog.Logger, tok
 	}()
 
 	go func() {
-		if srvErr := srv.ListenAndServe(); srvErr != nil && !errors.Is(srvErr, http.ErrServerClosed) {
+		if srvErr := srv.Serve(ln); srvErr != nil && !errors.Is(srvErr, http.ErrServerClosed) {
 			errCh <- fmt.Errorf("callback server: %w", srvErr)
 		}
 	}()
