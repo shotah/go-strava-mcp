@@ -16,7 +16,7 @@ import (
 	"github.com/shotah/go-strava-mcp/internal/tools"
 )
 
-// --- create_upload tests ---
+// --- uploads_create tests ---
 
 func TestCreateUploadAutoDetectsGPX(t *testing.T) {
 	var gotContentType string
@@ -50,7 +50,7 @@ func TestCreateUploadAutoDetectsGPX(t *testing.T) {
 	// Create temp GPX file
 	tmpDir := t.TempDir()
 	gpxFile := filepath.Join(tmpDir, "activity.gpx")
-	os.WriteFile(gpxFile, []byte("<gpx><trk></trk></gpx>"), 0644)
+	os.WriteFile(gpxFile, []byte("<gpx><trk></trk></gpx>"), 0o644)
 
 	client := newTestClient(srv.URL)
 	handler := tools.HandleCreateUpload(client)
@@ -85,7 +85,7 @@ func TestCreateUploadAutoDetectsFIT(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	fitFile := filepath.Join(tmpDir, "activity.fit")
-	os.WriteFile(fitFile, []byte("FIT-binary-data"), 0644)
+	os.WriteFile(fitFile, []byte("FIT-binary-data"), 0o644)
 
 	client := newTestClient(srv.URL)
 	handler := tools.HandleCreateUpload(client)
@@ -120,7 +120,7 @@ func TestCreateUploadAutoDetectsTCXGZ(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tcxgzFile := filepath.Join(tmpDir, "activity.tcx.gz")
-	os.WriteFile(tcxgzFile, []byte("compressed-tcx-data"), 0644)
+	os.WriteFile(tcxgzFile, []byte("compressed-tcx-data"), 0o644)
 
 	client := newTestClient(srv.URL)
 	handler := tools.HandleCreateUpload(client)
@@ -139,7 +139,7 @@ func TestCreateUploadAutoDetectsTCXGZ(t *testing.T) {
 func TestCreateUploadRejectsTxtFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	txtFile := filepath.Join(tmpDir, "notes.txt")
-	os.WriteFile(txtFile, []byte("some text"), 0644)
+	os.WriteFile(txtFile, []byte("some text"), 0o644)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("server should not be called for rejected file extension")
@@ -183,7 +183,7 @@ func TestCreateUploadUsesExplicitDataType(t *testing.T) {
 	// File has .gpx extension but we override with data_type=tcx
 	tmpDir := t.TempDir()
 	gpxFile := filepath.Join(tmpDir, "activity.gpx")
-	os.WriteFile(gpxFile, []byte("<gpx></gpx>"), 0644)
+	os.WriteFile(gpxFile, []byte("<gpx></gpx>"), 0o644)
 
 	client := newTestClient(srv.URL)
 	handler := tools.HandleCreateUpload(client)
@@ -233,7 +233,7 @@ func TestCreateUploadSendsOptionalFields(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	fitFile := filepath.Join(tmpDir, "workout.fit")
-	os.WriteFile(fitFile, []byte("FIT-data"), 0644)
+	os.WriteFile(fitFile, []byte("FIT-data"), 0o644)
 
 	client := newTestClient(srv.URL)
 	handler := tools.HandleCreateUpload(client)
@@ -288,7 +288,7 @@ func TestCreateUploadSendsFileContent(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	gpxFile := filepath.Join(tmpDir, "track.gpx")
-	os.WriteFile(gpxFile, []byte(fileContent), 0644)
+	os.WriteFile(gpxFile, []byte(fileContent), 0o644)
 
 	client := newTestClient(srv.URL)
 	handler := tools.HandleCreateUpload(client)
@@ -350,7 +350,7 @@ func TestCreateUploadNonexistentFile(t *testing.T) {
 	}
 }
 
-// --- get_upload tests ---
+// --- uploads_get tests ---
 
 func TestGetUploadBasic(t *testing.T) {
 	var gotPath, gotMethod string
@@ -388,7 +388,7 @@ func TestGetUploadBasic(t *testing.T) {
 	}
 
 	// Verify it's pretty-printed JSON
-	var parsed map[string]interface{}
+	var parsed map[string]any
 	if err := json.Unmarshal([]byte(text), &parsed); err != nil {
 		t.Errorf("result should be valid JSON, got: %s", text)
 	}
@@ -428,7 +428,7 @@ func TestCreateUploadAPIError(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	gpxFile := filepath.Join(tmpDir, "activity.gpx")
-	os.WriteFile(gpxFile, []byte("<gpx></gpx>"), 0644)
+	os.WriteFile(gpxFile, []byte("<gpx></gpx>"), 0o644)
 
 	client := newTestClient(srv.URL)
 	handler := tools.HandleCreateUpload(client)

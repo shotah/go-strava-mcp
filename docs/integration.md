@@ -92,24 +92,24 @@ Add StravaMCP to your agent framework's MCP server configuration. The agent fram
 
 An agent can pull recent activities, retrieve detailed telemetry, and summarize training patterns:
 
-1. `strava_get_activities` -- fetch the last 30 days of activities
-2. `strava_get_activity_streams` -- get heart rate, power, and pace data for each activity
-3. `strava_get_athlete_stats` -- compare recent totals against year-to-date and all-time stats
+1. `activities_list` -- fetch the last 30 days of activities
+2. `activities_get_streams` -- get heart rate, power, and pace data for each activity
+3. `athlete_get_stats` -- compare recent totals against year-to-date and all-time stats
 
 ### Activity Journaling
 
 An agent can enrich activities with notes, descriptions, and metadata:
 
-1. `strava_get_activities` -- list recent activities
-2. `strava_get_activity_by_id` -- get full details for a specific activity
-3. `strava_update_activity` -- add or update the description, name, or gear
-4. `strava_get_activity_zones` -- include heart rate zone distribution in the journal entry
+1. `activities_list` -- list recent activities
+2. `activities_get` -- get full details for a specific activity
+3. `activities_update` -- add or update the description, name, or gear
+4. `activities_get_zones` -- include heart rate zone distribution in the journal entry
 
 ### Club Activity Monitoring
 
 An agent can track club member activities for leaderboards or summaries:
 
-1. `strava_get_club_activities` -- fetch recent activities from all club members
+1. `clubs_list_activities` -- fetch recent activities from all club members
 
 ## Performance Characteristics
 

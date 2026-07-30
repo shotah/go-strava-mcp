@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,12 +19,12 @@ type Config struct {
 func Load() (*Config, error) {
 	clientID := os.Getenv("STRAVA_CLIENT_ID")
 	if clientID == "" {
-		return nil, fmt.Errorf("STRAVA_CLIENT_ID environment variable is required. Get it from https://www.strava.com/settings/api")
+		return nil, errors.New("STRAVA_CLIENT_ID environment variable is required. Get it from https://www.strava.com/settings/api")
 	}
 
 	clientSecret := os.Getenv("STRAVA_CLIENT_SECRET")
 	if clientSecret == "" {
-		return nil, fmt.Errorf("STRAVA_CLIENT_SECRET environment variable is required. Get it from https://www.strava.com/settings/api")
+		return nil, errors.New("STRAVA_CLIENT_SECRET environment variable is required. Get it from https://www.strava.com/settings/api")
 	}
 
 	tokenPath := os.Getenv("STRAVA_TOKEN_PATH")

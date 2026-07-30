@@ -11,7 +11,7 @@ import (
 	"github.com/shotah/go-strava-mcp/internal/strava"
 )
 
-var getActivitiesTool = mcp.NewTool("strava_get_activities",
+var getActivitiesTool = mcp.NewTool("activities_list",
 	mcp.WithDescription(`Retrieves the authenticated athlete's activities.
 
 **Key for Enrichment Workflow**: Use this to find activities from specific time periods, especially "today's run" or recent activities that need updating.
@@ -37,7 +37,7 @@ Example: To find today's runs, calculate today's start epoch timestamp and use i
 	mcp.WithNumber("per_page", mcp.Description("Number of items per page (1-200, default 30)")),
 )
 
-var getActivityByIdTool = mcp.NewTool("strava_get_activity_by_id",
+var getActivityByIdTool = mcp.NewTool("activities_get",
 	mcp.WithDescription(`Retrieves detailed information about a specific activity by its ID.
 
 Returns comprehensive activity data including:
@@ -48,12 +48,12 @@ Returns comprehensive activity data including:
 - Photos and kudos
 - Device information
 
-Use this after 'get_activities' to get full details about a specific activity before updating it.`),
+Use this after 'activities_list' to get full details about a specific activity before updating it.`),
 	mcp.WithNumber("id", mcp.Description("The ID of the activity"), mcp.Required()),
 	mcp.WithBoolean("include_all_efforts", mcp.Description("Include all segment efforts (default: false)")),
 )
 
-var createActivityTool = mcp.NewTool("strava_create_activity",
+var createActivityTool = mcp.NewTool("activities_create",
 	mcp.WithDescription(`Creates a new manual activity on Strava.
 
 **OAuth Scope**: Requires activity:write permission.
@@ -90,7 +90,7 @@ Use this when:
 	mcp.WithBoolean("commute", mcp.Description("Whether this was a commute")),
 )
 
-var updateActivityTool = mcp.NewTool("strava_update_activity",
+var updateActivityTool = mcp.NewTool("activities_update",
 	mcp.WithDescription(`**[CRITICAL - PRIMARY ENRICHMENT TOOL]** Updates an existing Strava activity.
 
 **OAuth Scope**: Requires activity:write permission.
@@ -98,9 +98,9 @@ var updateActivityTool = mcp.NewTool("strava_update_activity",
 **This is THE most important tool for the enrichment workflow.** Use this to transform basic auto-imported activities (especially from Apple Watch) into detailed, meaningful training logs.
 
 **The Enrichment Pattern:**
-1. Use 'get_activities' with 'after' parameter to find today's or recent activities
+1. Use 'activities_list' with 'after' parameter to find today's or recent activities
 2. Identify the activity that needs enrichment (often has generic names like "Morning Run")
-3. Use 'update_activity' to add:
+3. Use 'activities_update' to add:
    - Meaningful name (e.g., "Progressive Long Run - 10K" instead of "Morning Run")
    - Detailed description (weather, effort level, training notes, how you felt, route details)
    - Correct sport_type if needed (Run vs TrailRun vs VirtualRun)
@@ -133,7 +133,7 @@ var updateActivityTool = mcp.NewTool("strava_update_activity",
 	mcp.WithString("gear_id", mcp.Description("ID of the gear (shoes, bike) used")),
 )
 
-var getActivityZonesTool = mcp.NewTool("strava_get_activity_zones",
+var getActivityZonesTool = mcp.NewTool("activities_get_zones",
 	mcp.WithDescription(`Retrieves the zones of a given activity.
 
 **Note**: This is a **Strava Summit feature**. Requires appropriate activity:read scope based on privacy settings.
@@ -159,7 +159,7 @@ Useful for:
 	mcp.WithNumber("id", mcp.Description("The ID of the activity"), mcp.Required()),
 )
 
-// HandleGetActivities returns a handler for the get_activities tool.
+// HandleGetActivities returns a handler for the activities_list tool.
 func HandleGetActivities(client *strava.Client) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		params := map[string]string{}
@@ -179,18 +179,18 @@ func HandleGetActivities(client *strava.Client) server.ToolHandlerFunc {
 
 		data, err := client.Get(ctx, "/athlete/activities", params)
 		if err != nil {
-			return HandleToolError("get_activities", err), nil
+			return HandleToolError("activities_list", err), nil
 		}
 		return FormatResponse(data, client), nil
 	}
 }
 
-// HandleGetActivityById returns a handler for the get_activity_by_id tool.
+// HandleGetActivityById returns a handler for the activities_get tool.
 func HandleGetActivityById(client *strava.Client) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		id := request.GetInt("id", 0)
 		if id == 0 {
-			return mcp.NewToolResultError("get_activity_by_id: id is required"), nil
+			return mcp.NewToolResultError("activities_get: id is required"), nil
 		}
 
 		params := map[string]string{}
@@ -200,13 +200,13 @@ func HandleGetActivityById(client *strava.Client) server.ToolHandlerFunc {
 
 		data, err := client.Get(ctx, fmt.Sprintf("/activities/%d", id), params)
 		if err != nil {
-			return HandleToolError("get_activity_by_id", err), nil
+			return HandleToolError("activities_get", err), nil
 		}
 		return FormatResponse(data, client), nil
 	}
 }
 
-// HandleCreateActivity returns a handler for the create_activity tool.
+// HandleCreateActivity returns a handler for the activities_create tool.
 func HandleCreateActivity(client *strava.Client) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := request.GetArguments()
@@ -214,23 +214,23 @@ func HandleCreateActivity(client *strava.Client) server.ToolHandlerFunc {
 		// Validate required fields
 		name, _ := args["name"].(string)
 		if name == "" {
-			return mcp.NewToolResultError("create_activity: name is required"), nil
+			return mcp.NewToolResultError("activities_create: name is required"), nil
 		}
 		sportType, _ := args["sport_type"].(string)
 		if sportType == "" {
-			return mcp.NewToolResultError("create_activity: sport_type is required"), nil
+			return mcp.NewToolResultError("activities_create: sport_type is required"), nil
 		}
 		startDateLocal, _ := args["start_date_local"].(string)
 		if startDateLocal == "" {
-			return mcp.NewToolResultError("create_activity: start_date_local is required"), nil
+			return mcp.NewToolResultError("activities_create: start_date_local is required"), nil
 		}
 		elapsedTime := request.GetInt("elapsed_time", 0)
 		if elapsedTime == 0 {
-			return mcp.NewToolResultError("create_activity: elapsed_time is required"), nil
+			return mcp.NewToolResultError("activities_create: elapsed_time is required"), nil
 		}
 
 		// Build body from all provided arguments
-		body := map[string]interface{}{
+		body := map[string]any{
 			"name":             name,
 			"sport_type":       sportType,
 			"start_date_local": startDateLocal,
@@ -245,23 +245,23 @@ func HandleCreateActivity(client *strava.Client) server.ToolHandlerFunc {
 
 		data, err := client.Post(ctx, "/activities", body)
 		if err != nil {
-			return HandleToolError("create_activity", err), nil
+			return HandleToolError("activities_create", err), nil
 		}
 		return FormatResponse(data, client), nil
 	}
 }
 
-// HandleUpdateActivity returns a handler for the update_activity tool.
+// HandleUpdateActivity returns a handler for the activities_update tool.
 // CRITICAL: Only sends user-provided fields to avoid zero-value overwrite.
 func HandleUpdateActivity(client *strava.Client) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		id := request.GetInt("id", 0)
 		if id == 0 {
-			return mcp.NewToolResultError("update_activity: id is required"), nil
+			return mcp.NewToolResultError("activities_update: id is required"), nil
 		}
 
 		args := request.GetArguments()
-		body := map[string]interface{}{}
+		body := map[string]any{}
 
 		// Only include fields that were explicitly provided in the request.
 		// Do NOT include "id" in the body (it goes in the URL path).
@@ -281,23 +281,23 @@ func HandleUpdateActivity(client *strava.Client) server.ToolHandlerFunc {
 
 		data, err := client.Put(ctx, fmt.Sprintf("/activities/%d", id), body)
 		if err != nil {
-			return HandleToolError("update_activity", err), nil
+			return HandleToolError("activities_update", err), nil
 		}
 		return FormatResponse(data, client), nil
 	}
 }
 
-// HandleGetActivityZones returns a handler for the get_activity_zones tool.
+// HandleGetActivityZones returns a handler for the activities_get_zones tool.
 func HandleGetActivityZones(client *strava.Client) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		id := request.GetInt("id", 0)
 		if id == 0 {
-			return mcp.NewToolResultError("get_activity_zones: id is required"), nil
+			return mcp.NewToolResultError("activities_get_zones: id is required"), nil
 		}
 
 		data, err := client.Get(ctx, fmt.Sprintf("/activities/%d/zones", id), nil)
 		if err != nil {
-			return HandleToolError("get_activity_zones", err), nil
+			return HandleToolError("activities_get_zones", err), nil
 		}
 		return FormatResponse(data, client), nil
 	}

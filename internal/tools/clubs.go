@@ -11,7 +11,7 @@ import (
 	"github.com/shotah/go-strava-mcp/internal/strava"
 )
 
-var getClubActivitiesTool = mcp.NewTool("strava_get_club_activities",
+var getClubActivitiesTool = mcp.NewTool("clubs_list_activities",
 	mcp.WithDescription(`Retrieves recent activities from members of a specific club.
 
 **OAuth Scope**: Requires read scope. Only shows activities visible based on member privacy settings.
@@ -42,12 +42,12 @@ Note: Only shows activities from club members who have their privacy settings se
 	mcp.WithNumber("per_page", mcp.Description("Number of items per page (1-200, default 30)")),
 )
 
-// HandleGetClubActivities returns a handler for the get_club_activities tool.
+// HandleGetClubActivities returns a handler for the clubs_list_activities tool.
 func HandleGetClubActivities(client *strava.Client) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		id := request.GetInt("id", 0)
 		if id == 0 {
-			return mcp.NewToolResultError("get_club_activities: id is required"), nil
+			return mcp.NewToolResultError("clubs_list_activities: id is required"), nil
 		}
 
 		params := map[string]string{}
@@ -61,7 +61,7 @@ func HandleGetClubActivities(client *strava.Client) server.ToolHandlerFunc {
 
 		data, err := client.Get(ctx, fmt.Sprintf("/clubs/%d/activities", id), params)
 		if err != nil {
-			return HandleToolError("get_club_activities", err), nil
+			return HandleToolError("clubs_list_activities", err), nil
 		}
 		return FormatResponse(data, client), nil
 	}

@@ -68,13 +68,13 @@ func (c *Cache) Write(latestVersion, releaseURL string) error {
 
 	// Ensure directory exists.
 	dir := filepath.Dir(c.path)
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("create cache directory: %w", err)
 	}
 
 	// Write to temp file.
 	tmpPath := c.path + ".tmp"
-	if err := os.WriteFile(tmpPath, raw, 0600); err != nil {
+	if err := os.WriteFile(tmpPath, raw, 0o600); err != nil {
 		return fmt.Errorf("write temp cache file: %w", err)
 	}
 

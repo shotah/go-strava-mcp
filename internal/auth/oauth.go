@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/pkg/browser"
@@ -20,14 +22,19 @@ import (
 )
 
 const (
-	callbackPort = 19876
-	oauthTimeout = 2 * time.Minute
-	authorizeURL = "https://www.strava.com/oauth/authorize"
-	tokenURL     = "https://www.strava.com/api/v3/oauth/token"
-	athleteURL   = "https://www.strava.com/api/v3/athlete"
-	oauthScopes  = "read,read_all,profile:read_all,profile:write,activity:read_all,activity:write"
-	callbackPath = "/callback"
+	callbackPort      = 19876
+	oauthTimeout      = 2 * time.Minute
+	authorizeURL      = "https://www.strava.com/oauth/authorize"
+	tokenURL          = "https://www.strava.com/api/v3/oauth/token"
+	athleteURL        = "https://www.strava.com/api/v3/athlete"
+	oauthScopes       = "read,read_all,profile:read_all,profile:write,activity:read_all,activity:write"
+	callbackPath      = "/callback"
+	httpTimeout       = 10 * time.Second
+	readHeaderTimeout = 5 * time.Second
 )
+
+// openBrowser is the browser launcher, indirected so tests can stub it.
+var openBrowser = browser.OpenURL
 
 const successPageHTML = `<!DOCTYPE html>
 <html>
@@ -108,7 +115,7 @@ func NewCallbackHandler(expectedState string, codeCh chan<- string, errCh chan<-
 
 		// Check for error parameter from Strava
 		if stravaErr := query.Get("error"); stravaErr != "" {
-			errCh <- fmt.Errorf("Strava authorization error: %s", stravaErr)
+			errCh <- fmt.Errorf("authorization error from Strava: %s", stravaErr)
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, errorPageHTML, html.EscapeString(stravaErr))
 			return
@@ -117,7 +124,7 @@ func NewCallbackHandler(expectedState string, codeCh chan<- string, errCh chan<-
 		// Extract authorization code
 		code := query.Get("code")
 		if code == "" {
-			errCh <- fmt.Errorf("no authorization code in callback")
+			errCh <- errors.New("no authorization code in callback")
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, errorPageHTML, "No authorization code received.")
 			return
@@ -140,7 +147,14 @@ func ExchangeCode(clientID, clientSecret, code, tokenEndpoint string) (*Tokens, 
 		"grant_type":    {"authorization_code"},
 	}
 
-	resp, err := http.PostForm(tokenEndpoint, data)
+	req, err := http.NewRequest(http.MethodPost, tokenEndpoint, strings.NewReader(data.Encode()))
+	if err != nil {
+		return nil, fmt.Errorf("create token exchange request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	client := &http.Client{Timeout: httpTimeout}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("token exchange request: %w", err)
 	}
@@ -163,9 +177,9 @@ func ExchangeCode(clientID, clientSecret, code, tokenEndpoint string) (*Tokens, 
 // This validates the full auth chain end-to-end: tokens were stored correctly and work for API calls.
 // The athleteEndpoint parameter allows overriding for tests; pass athleteURL for production.
 func FetchAthleteName(accessToken, athleteEndpoint string) (string, error) {
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: httpTimeout}
 
-	req, err := http.NewRequest("GET", athleteEndpoint, nil)
+	req, err := http.NewRequest(http.MethodGet, athleteEndpoint, http.NoBody)
 	if err != nil {
 		return "", fmt.Errorf("create athlete request: %w", err)
 	}
@@ -202,6 +216,12 @@ func FetchAthleteName(accessToken, athleteEndpoint string) (string, error) {
 // 6. Validates by calling GET /athlete
 // 7. Prints "Authenticated as [Name]!" to stderr
 func RunOAuthFlow(cfg *config.Config, store TokenStore, logger *slog.Logger) error {
+	return runOAuthFlow(cfg, store, logger, tokenURL, athleteURL)
+}
+
+// runOAuthFlow is the implementation behind RunOAuthFlow. The endpoints are
+// parameters so tests can point them at a local server.
+func runOAuthFlow(cfg *config.Config, store TokenStore, logger *slog.Logger, tokenEndpoint, athleteEndpoint string) error {
 	state, err := generateState()
 	if err != nil {
 		return err
@@ -216,8 +236,9 @@ func RunOAuthFlow(cfg *config.Config, store TokenStore, logger *slog.Logger) err
 	mux.Handle(callbackPath, NewCallbackHandler(state, codeCh, errCh))
 
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", callbackPort),
-		Handler: mux,
+		Addr:              fmt.Sprintf(":%d", callbackPort),
+		Handler:           mux,
+		ReadHeaderTimeout: readHeaderTimeout,
 	}
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -226,7 +247,7 @@ func RunOAuthFlow(cfg *config.Config, store TokenStore, logger *slog.Logger) err
 	}()
 
 	go func() {
-		if srvErr := srv.ListenAndServe(); srvErr != nil && srvErr != http.ErrServerClosed {
+		if srvErr := srv.ListenAndServe(); srvErr != nil && !errors.Is(srvErr, http.ErrServerClosed) {
 			errCh <- fmt.Errorf("callback server: %w", srvErr)
 		}
 	}()
@@ -234,7 +255,7 @@ func RunOAuthFlow(cfg *config.Config, store TokenStore, logger *slog.Logger) err
 	// Open browser
 	browser.Stdout = os.Stderr
 	browser.Stderr = os.Stderr
-	if err := browser.OpenURL(authURL); err != nil {
+	if err := openBrowser(authURL); err != nil {
 		fmt.Fprintf(os.Stderr, "Open this URL in your browser:\n%s\n", authURL)
 	}
 
@@ -242,7 +263,7 @@ func RunOAuthFlow(cfg *config.Config, store TokenStore, logger *slog.Logger) err
 
 	select {
 	case code := <-codeCh:
-		tokens, err := ExchangeCode(cfg.ClientID, cfg.ClientSecret, code, tokenURL)
+		tokens, err := ExchangeCode(cfg.ClientID, cfg.ClientSecret, code, tokenEndpoint)
 		if err != nil {
 			return err
 		}
@@ -254,7 +275,7 @@ func RunOAuthFlow(cfg *config.Config, store TokenStore, logger *slog.Logger) err
 		// CRITICAL: Validate end-to-end by calling GET /athlete with the
 		// persisted access token. This confirms: code exchange succeeded,
 		// token store write succeeded, and the token is usable for API calls.
-		name, err := FetchAthleteName(tokens.AccessToken, athleteURL)
+		name, err := FetchAthleteName(tokens.AccessToken, athleteEndpoint)
 		if err != nil {
 			return fmt.Errorf("token validation failed: %w", err)
 		}
@@ -266,6 +287,6 @@ func RunOAuthFlow(cfg *config.Config, store TokenStore, logger *slog.Logger) err
 		return err
 
 	case <-time.After(oauthTimeout):
-		return fmt.Errorf("OAuth timed out. Run `strava-mcp auth` again.")
+		return errors.New("OAuth timed out; run `strava-mcp auth` again")
 	}
 }

@@ -1,13 +1,14 @@
-[![Go Version](https://img.shields.io/github/go-mod/go-version/shotah/go-strava-mcp)](https://go.dev/)
-[![Go Report Card](https://goreportcard.com/badge/github.com/shotah/go-strava-mcp)](https://goreportcard.com/report/github.com/shotah/go-strava-mcp)
-[![GoDoc](https://pkg.go.dev/badge/github.com/shotah/go-strava-mcp)](https://pkg.go.dev/github.com/shotah/go-strava-mcp)
-[![License](https://img.shields.io/github/license/shotah/go-strava-mcp)](LICENSE)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/shotah/go-strava-mcp/ci.yml)](https://github.com/shotah/go-strava-mcp/actions)
-[![Release](https://img.shields.io/github/v/release/shotah/go-strava-mcp)](https://github.com/shotah/go-strava-mcp/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/shotah/go-strava-mcp/total)](https://github.com/shotah/go-strava-mcp/releases)
-[![Tools](https://img.shields.io/badge/MCP_Tools-11-blue)](README.md#tool-reference)
-
 # StravaMCP
+
+<p align="center">
+  <a href="https://github.com/shotah/go-strava-mcp/actions/workflows/ci.yml"><img src="https://github.com/shotah/go-strava-mcp/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/shotah/go-strava-mcp/actions/workflows/release.yml"><img src="https://github.com/shotah/go-strava-mcp/actions/workflows/release.yml/badge.svg" alt="Release"></a>
+  <a href="https://github.com/shotah/go-strava-mcp/actions/workflows/ci.yml"><img src="https://github.com/shotah/go-strava-mcp/raw/gh-pages/badges/coverage.svg" alt="Coverage"></a>
+  <a href="https://pkg.go.dev/github.com/shotah/go-strava-mcp"><img src="https://pkg.go.dev/badge/github.com/shotah/go-strava-mcp.svg" alt="Go Reference"></a>
+  <img src="https://img.shields.io/github/go-mod/go-version/shotah/go-strava-mcp" alt="Go version">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/shotah/go-strava-mcp" alt="License"></a>
+  <a href="README.md#tool-reference"><img src="https://img.shields.io/badge/MCP_Tools-11-blue" alt="MCP Tools"></a>
+</p>
 
 **A production-grade MCP server that gives agent frameworks full access to the Strava API -- single Go binary, zero infrastructure.**
 
@@ -152,17 +153,17 @@ The agent framework launches StravaMCP as a subprocess, communicates over stdio 
 
 | Tool | Category | Description |
 |------|----------|-------------|
-| `strava_get_activities` | Activities | List recent activities with date filtering and pagination |
-| `strava_get_activity_by_id` | Activities | Get detailed activity info including laps, splits, and segment efforts |
-| `strava_create_activity` | Activities | Create a new manual activity |
-| `strava_update_activity` | Activities | Update an existing activity (name, description, sport type, gear) |
-| `strava_get_activity_zones` | Activities | Get heart rate and power zone distribution |
-| `strava_get_athlete` | Athlete | Get authenticated athlete profile |
-| `strava_get_athlete_stats` | Athlete | Get aggregate statistics (recent/YTD/all-time totals) |
-| `strava_get_activity_streams` | Streams | Get time-series telemetry data (HR, GPS, power, cadence, altitude) |
-| `strava_get_club_activities` | Clubs | List recent activities from club members |
-| `strava_create_upload` | Uploads | Upload activity files (GPX, TCX, FIT) |
-| `strava_get_upload` | Uploads | Check upload processing status |
+| `activities_list` | Activities | List recent activities with date filtering and pagination |
+| `activities_get` | Activities | Get detailed activity info including laps, splits, and segment efforts |
+| `activities_create` | Activities | Create a new manual activity |
+| `activities_update` | Activities | Update an existing activity (name, description, sport type, gear) |
+| `activities_get_zones` | Activities | Get heart rate and power zone distribution |
+| `athlete_get` | Athlete | Get authenticated athlete profile |
+| `athlete_get_stats` | Athlete | Get aggregate statistics (recent/YTD/all-time totals) |
+| `activities_get_streams` | Streams | Get time-series telemetry data (HR, GPS, power, cadence, altitude) |
+| `clubs_list_activities` | Clubs | List recent activities from club members |
+| `uploads_create` | Uploads | Upload activity files (GPX, TCX, FIT) |
+| `uploads_get` | Uploads | Check upload processing status |
 
 </details>
 

@@ -3,7 +3,7 @@ package tools_test
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -40,7 +40,7 @@ func (m *mockTokenStore) Read() (*auth.Tokens, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.tokens == nil {
-		return nil, fmt.Errorf("no tokens")
+		return nil, errors.New("no tokens")
 	}
 	cpy := *m.tokens
 	return &cpy, nil
@@ -77,13 +77,6 @@ func newTestClient(serverURL string) *strava.Client {
 	cfg := &config.Config{ClientID: "id", ClientSecret: "secret"}
 	client := strava.NewClient(cfg, store, testLogger())
 	client.SetBaseURL(serverURL)
-	return client
-}
-
-// newTestClientWithRateLimit creates a strava.Client that will have rate limit
-// warnings after making a request to a server that sets high usage headers.
-func newTestClientWithRateLimit(serverURL string) *strava.Client {
-	client := newTestClient(serverURL)
 	return client
 }
 
@@ -225,14 +218,14 @@ func TestHandleToolErrorStravaError(t *testing.T) {
 		t.Fatal("expected error from 403 response")
 	}
 
-	result := tools.HandleToolError("get_activities", err)
+	result := tools.HandleToolError("activities_list", err)
 
 	if !result.IsError {
 		t.Fatal("expected IsError=true")
 	}
 
 	text := extractResultText(t, result)
-	if !strings.Contains(text, "get_activities") {
+	if !strings.Contains(text, "activities_list") {
 		t.Errorf("expected tool name in error, got: %s", text)
 	}
 	if !strings.Contains(text, "403") {
@@ -244,15 +237,15 @@ func TestHandleToolErrorStravaError(t *testing.T) {
 }
 
 func TestHandleToolErrorGenericError(t *testing.T) {
-	err := fmt.Errorf("connection refused")
-	result := tools.HandleToolError("get_athlete", err)
+	err := errors.New("connection refused")
+	result := tools.HandleToolError("athlete_get", err)
 
 	if !result.IsError {
 		t.Fatal("expected IsError=true")
 	}
 
 	text := extractResultText(t, result)
-	if !strings.Contains(text, "get_athlete") {
+	if !strings.Contains(text, "athlete_get") {
 		t.Errorf("expected tool name in error, got: %s", text)
 	}
 	if !strings.Contains(text, "connection refused") {

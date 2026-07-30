@@ -18,7 +18,7 @@ var streamTypes = []string{
 	"heartrate", "cadence", "watts", "temp", "moving", "grade_smooth",
 }
 
-var getActivityStreamsTool = mcp.NewTool("strava_get_activity_streams",
+var getActivityStreamsTool = mcp.NewTool("activities_get_streams",
 	mcp.WithDescription(`**[TELEMETRY & DEEP ANALYSIS]** Retrieves time-series sensor data (streams) from an activity.
 
 **Performance Coach's Secret Weapon**: While activity summaries give you averages, streams give you the complete story - every data point recorded during the activity. Essential for understanding pacing strategy, heart rate response, power distribution, and elevation profiles.
@@ -98,12 +98,12 @@ var getActivityStreamsTool = mcp.NewTool("strava_get_activity_streams",
 	mcp.WithBoolean("key_by_type", mcp.Description("Return streams as an object keyed by type (default: true)")),
 )
 
-// HandleGetActivityStreams returns a handler for the get_activity_streams tool.
+// HandleGetActivityStreams returns a handler for the activities_get_streams tool.
 func HandleGetActivityStreams(client *strava.Client) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		id := request.GetInt("id", 0)
 		if id == 0 {
-			return mcp.NewToolResultError("get_activity_streams: id is required"), nil
+			return mcp.NewToolResultError("activities_get_streams: id is required"), nil
 		}
 
 		params := map[string]string{}
@@ -111,7 +111,7 @@ func HandleGetActivityStreams(client *strava.Client) server.ToolHandlerFunc {
 		// Extract keys array from arguments
 		args := request.GetArguments()
 		if keysRaw, ok := args["keys"]; ok {
-			if keysSlice, ok := keysRaw.([]interface{}); ok {
+			if keysSlice, ok := keysRaw.([]any); ok {
 				keys := make([]string, 0, len(keysSlice))
 				for _, k := range keysSlice {
 					if s, ok := k.(string); ok {
@@ -131,7 +131,7 @@ func HandleGetActivityStreams(client *strava.Client) server.ToolHandlerFunc {
 
 		data, err := client.Get(ctx, fmt.Sprintf("/activities/%d/streams", id), params)
 		if err != nil {
-			return HandleToolError("get_activity_streams", err), nil
+			return HandleToolError("activities_get_streams", err), nil
 		}
 		return FormatResponse(data, client), nil
 	}

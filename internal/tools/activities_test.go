@@ -23,7 +23,7 @@ func makeRequest(args map[string]any) mcp.CallToolRequest {
 	}
 }
 
-// --- get_activities tests ---
+// --- activities_list tests ---
 
 func TestGetActivitiesBasic(t *testing.T) {
 	var gotPath, gotMethod string
@@ -96,7 +96,7 @@ func TestGetActivitiesBeforeAfterParams(t *testing.T) {
 	}
 }
 
-// --- get_activity_by_id tests ---
+// --- activities_get tests ---
 
 func TestGetActivityByIdBasic(t *testing.T) {
 	var gotPath string
@@ -178,11 +178,11 @@ func TestGetActivityByIdMissingId(t *testing.T) {
 	}
 }
 
-// --- create_activity tests ---
+// --- activities_create tests ---
 
 func TestCreateActivityBasic(t *testing.T) {
 	var gotPath, gotMethod string
-	var gotBody map[string]interface{}
+	var gotBody map[string]any
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotMethod = r.Method
@@ -252,10 +252,10 @@ func TestCreateActivityMissingRequired(t *testing.T) {
 	}
 }
 
-// --- update_activity tests ---
+// --- activities_update tests ---
 
 func TestUpdateActivitySendsOnlyProvidedFields(t *testing.T) {
-	var gotBody map[string]interface{}
+	var gotBody map[string]any
 	var gotPath, gotMethod string
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -334,7 +334,7 @@ func TestUpdateActivityMissingId(t *testing.T) {
 	}
 }
 
-// --- get_activity_zones tests ---
+// --- activities_get_zones tests ---
 
 func TestGetActivityZonesBasic(t *testing.T) {
 	var gotPath string
@@ -380,17 +380,17 @@ func TestAllHandlersReturnStravaErrorOn403(t *testing.T) {
 		args    map[string]any
 	}{
 		{
-			name:    "get_activities",
+			name:    "activities_list",
 			handler: tools.HandleGetActivities(client),
 			args:    map[string]any{},
 		},
 		{
-			name:    "get_activity_by_id",
+			name:    "activities_get",
 			handler: tools.HandleGetActivityById(client),
 			args:    map[string]any{"id": float64(123)},
 		},
 		{
-			name:    "create_activity",
+			name:    "activities_create",
 			handler: tools.HandleCreateActivity(client),
 			args: map[string]any{
 				"name":             "Test",
@@ -400,12 +400,12 @@ func TestAllHandlersReturnStravaErrorOn403(t *testing.T) {
 			},
 		},
 		{
-			name:    "update_activity",
+			name:    "activities_update",
 			handler: tools.HandleUpdateActivity(client),
 			args:    map[string]any{"id": float64(123), "name": "Updated"},
 		},
 		{
-			name:    "get_activity_zones",
+			name:    "activities_get_zones",
 			handler: tools.HandleGetActivityZones(client),
 			args:    map[string]any{"id": float64(123)},
 		},

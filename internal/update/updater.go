@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -16,6 +17,10 @@ import (
 	"strings"
 	"time"
 )
+
+// maxBinarySize bounds the decompressed binary extracted from a release
+// archive, guarding against a decompression bomb.
+const maxBinarySize = 256 << 20 // 256 MiB
 
 // ProgressFunc is called with status messages during the update process.
 // All messages go to stderr. The caller provides the callback.
@@ -56,7 +61,7 @@ func CheckWritePermission(binaryPath string) error {
 	// Try creating a temp file in the target directory.
 	tmp, err := os.CreateTemp(dir, ".strava-mcp-update-check-*")
 	if err != nil {
-		return fmt.Errorf("permission denied: cannot write to %s — run with sudo or move binary to a user-writable location", dir)
+		return fmt.Errorf("permission denied: cannot write to %s - run with sudo or move binary to a user-writable location", dir)
 	}
 	tmp.Close()
 	os.Remove(tmp.Name())
@@ -93,7 +98,7 @@ func findAssetURL(assets []ReleaseAsset, name string) (string, error) {
 
 // download fetches a URL to a temp file in the given directory. Returns the temp file path.
 func (u *Updater) download(ctx context.Context, url, dir string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return "", fmt.Errorf("create request: %w", err)
 	}
@@ -149,7 +154,7 @@ func parseChecksum(checksumsPath, targetFilename string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("read checksums: %w", err)
 	}
-	for _, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(string(data)), "\n") {
 		parts := strings.Fields(line)
 		if len(parts) == 2 && parts[1] == targetFilename {
 			return parts[0], nil
@@ -185,19 +190,25 @@ func extractBinary(archivePath, dest string) error {
 		// Match the binary name, handling possible directory prefix.
 		name := filepath.Base(hdr.Name)
 		if name == "strava-mcp" && hdr.Typeflag == tar.TypeReg {
-			out, err := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
+			// The binary needs the executable bit; goreleaser archives are trusted
+			// (checksum-verified) but the size is still bounded below.
+			out, err := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o755) //nolint:gosec // G302: executable must be runnable
 			if err != nil {
 				return fmt.Errorf("create binary: %w", err)
 			}
-			if _, err := io.Copy(out, tr); err != nil {
-				out.Close()
+			// LimitReader bounds the decompressed size (gosec G110).
+			written, err := io.Copy(out, io.LimitReader(tr, maxBinarySize+1))
+			out.Close()
+			if err != nil {
 				return fmt.Errorf("extract binary: %w", err)
 			}
-			out.Close()
+			if written > maxBinarySize {
+				return fmt.Errorf("extracted binary exceeds %d bytes", maxBinarySize)
+			}
 			return nil
 		}
 	}
-	return fmt.Errorf("strava-mcp binary not found in archive")
+	return errors.New("strava-mcp binary not found in archive")
 }
 
 // Update performs the full self-update sequence:
@@ -294,12 +305,12 @@ func (u *Updater) Update(ctx context.Context, binaryPath string, progress Progre
 	if err := os.Rename(newBinaryPath, binaryPath); err != nil {
 		// Restore from backup on failure.
 		if restoreErr := os.Rename(bakPath, binaryPath); restoreErr != nil {
-			return fmt.Errorf("CRITICAL: rename failed (%v) and restore failed (%v) — manually restore from %s", err, restoreErr, bakPath)
+			return fmt.Errorf("CRITICAL: rename failed (%w) and restore failed (%w) - manually restore from %s", err, restoreErr, bakPath)
 		}
 		return fmt.Errorf("replace binary: %w (restored from backup)", err)
 	}
 
 	progress(fmt.Sprintf("Updated to %s! Previous version saved as %s", ensureVPrefix(latestTag), filepath.Base(bakPath)))
-	progress(fmt.Sprintf("Restart strava-mcp to use %s", ensureVPrefix(latestTag)))
+	progress("Restart strava-mcp to use " + ensureVPrefix(latestTag))
 	return nil
 }

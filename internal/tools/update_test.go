@@ -29,7 +29,7 @@ func githubReleaseJSON(tagName, htmlURL string) string {
 	return `{"tag_name":"` + tagName + `","html_url":"` + htmlURL + `","assets":[]}`
 }
 
-// --- strava_check_update tests ---
+// --- utility_check_update tests ---
 
 func TestCheckUpdateBasic(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -107,7 +107,7 @@ func TestCheckUpdateAlreadyCurrent(t *testing.T) {
 }
 
 func TestCheckUpdateDevBuild(t *testing.T) {
-	// No server needed â€” dev builds short-circuit before any network call.
+	// No server needed — dev builds short-circuit before any network call.
 	checker := newTestCheckerWithServer(t, "http://localhost:0", "dev")
 	handler := tools.HandleCheckUpdate(checker)
 
@@ -143,7 +143,7 @@ func TestCheckUpdateNetworkError(t *testing.T) {
 	}
 
 	text := extractResultText(t, result)
-	if !strings.Contains(text, "strava_check_update") {
+	if !strings.Contains(text, "utility_check_update") {
 		t.Errorf("error should contain tool name, got: %s", text)
 	}
 }
@@ -184,7 +184,7 @@ func TestCheckUpdateResponseFormat(t *testing.T) {
 	}
 }
 
-// --- strava_self_update tests ---
+// --- utility_self_update tests ---
 
 func TestSelfUpdateNoConfirm(t *testing.T) {
 	checker := newTestCheckerWithServer(t, "http://localhost:0", "1.0.0")
@@ -248,12 +248,117 @@ func TestSelfUpdateDevBuild(t *testing.T) {
 	}
 }
 
+// TestSelfUpdateAlreadyCurrent runs the handler all the way through the updater.
+// The release matches the running version, so Update() returns before it would
+// touch any binary on disk.
+func TestSelfUpdateAlreadyCurrent(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte(githubReleaseJSON("v1.0.0", "https://example.com/v1.0.0")))
+	}))
+	defer srv.Close()
+
+	checker := newTestCheckerWithServer(t, srv.URL, "1.0.0")
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	updater := update.NewUpdater(checker, logger)
+	handler := tools.HandleSelfUpdate(checker, updater)
+
+	result, err := handler(context.Background(), makeRequest(map[string]any{"confirm": true}))
+	if err != nil {
+		t.Fatalf("handler error: %v", err)
+	}
+	if result.IsError {
+		t.Fatalf("expected non-error result, got: %s", extractResultText(t, result))
+	}
+
+	var resp struct {
+		Updated    bool   `json:"updated"`
+		NewVersion string `json:"new_version"`
+		Message    string `json:"message"`
+	}
+	if err := json.Unmarshal([]byte(extractResultText(t, result)), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if !resp.Updated {
+		t.Error("updated should be true")
+	}
+	if resp.NewVersion != "v1.0.0" {
+		t.Errorf("new_version = %q, want %q", resp.NewVersion, "v1.0.0")
+	}
+	if !strings.Contains(resp.Message, "Restart") {
+		t.Errorf("message = %q, want it to tell the user to restart", resp.Message)
+	}
+}
+
+// TestSelfUpdateVersionLookupFailsAfterUpdate covers the fallback response used
+// when the post-update version lookup fails.
+func TestSelfUpdateVersionLookupFailsAfterUpdate(t *testing.T) {
+	var calls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls++
+		if calls > 1 {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Write([]byte(githubReleaseJSON("v1.0.0", "https://example.com/v1.0.0")))
+	}))
+	defer srv.Close()
+
+	checker := newTestCheckerWithServer(t, srv.URL, "1.0.0")
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	handler := tools.HandleSelfUpdate(checker, update.NewUpdater(checker, logger))
+
+	result, err := handler(context.Background(), makeRequest(map[string]any{"confirm": true}))
+	if err != nil {
+		t.Fatalf("handler error: %v", err)
+	}
+	if result.IsError {
+		t.Fatalf("expected non-error result, got: %s", extractResultText(t, result))
+	}
+
+	var resp struct {
+		Updated    bool   `json:"updated"`
+		NewVersion string `json:"new_version"`
+	}
+	if err := json.Unmarshal([]byte(extractResultText(t, result)), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if !resp.Updated {
+		t.Error("updated should be true even when the version lookup fails")
+	}
+	if resp.NewVersion != "" {
+		t.Errorf("new_version = %q, want it omitted when the lookup fails", resp.NewVersion)
+	}
+}
+
+func TestSelfUpdateReportsUpdaterFailure(t *testing.T) {
+	// The release advertises no assets, so the updater cannot find its archive.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte(githubReleaseJSON("v99.0.0", "https://example.com/v99.0.0")))
+	}))
+	defer srv.Close()
+
+	checker := newTestCheckerWithServer(t, srv.URL, "1.0.0")
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	handler := tools.HandleSelfUpdate(checker, update.NewUpdater(checker, logger))
+
+	result, err := handler(context.Background(), makeRequest(map[string]any{"confirm": true}))
+	if err != nil {
+		t.Fatalf("handler error: %v", err)
+	}
+	if !result.IsError {
+		t.Fatal("expected an error result when the updater fails")
+	}
+	if text := extractResultText(t, result); !strings.Contains(text, "utility_self_update") {
+		t.Errorf("error should name the tool, got: %s", text)
+	}
+}
+
 // TestSelfUpdateHandlerReturnsResult verifies that the handler always returns
 // a result rather than calling os.Exit(). If os.Exit() were called, this test
-// would terminate the test process without reporting results â€” its very
+// would terminate the test process without reporting results — its very
 // completion proves the handler is safe.
 func TestSelfUpdateHandlerReturnsResult(t *testing.T) {
-	// Use a dev build to trigger the early return â€” the point is to verify
+	// Use a dev build to trigger the early return — the point is to verify
 	// the handler returns a result (any result) rather than calling os.Exit().
 	checker := newTestCheckerWithServer(t, "http://localhost:0", "dev")
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -265,7 +370,7 @@ func TestSelfUpdateHandlerReturnsResult(t *testing.T) {
 		t.Fatalf("handler returned Go error (not MCP error): %v", err)
 	}
 	if result == nil {
-		t.Fatal("handler returned nil result â€” should always return a *CallToolResult")
+		t.Fatal("handler returned nil result — should always return a *CallToolResult")
 	}
 	// If we reach here, os.Exit() was not called. Test passes.
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/shotah/go-strava-mcp/internal/tools"
 )
 
-// --- get_activity_streams tests ---
+// --- activities_get_streams tests ---
 
 func TestGetActivityStreamsWithSpecificKeys(t *testing.T) {
 	var gotPath string
@@ -29,7 +29,7 @@ func TestGetActivityStreamsWithSpecificKeys(t *testing.T) {
 
 	req := makeRequest(map[string]any{
 		"id":   float64(123),
-		"keys": []interface{}{"heartrate", "time"},
+		"keys": []any{"heartrate", "time"},
 	})
 	result, err := handler(context.Background(), req)
 	if err != nil {

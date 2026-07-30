@@ -3,7 +3,7 @@ package strava_test
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -41,7 +41,7 @@ func (m *mockTokenStore) Read() (*auth.Tokens, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.tokens == nil {
-		return nil, fmt.Errorf("no tokens")
+		return nil, errors.New("no tokens")
 	}
 	// Return a copy to avoid data races
 	cpy := *m.tokens
@@ -198,7 +198,7 @@ func TestSingleflightCoalescesRefresh(t *testing.T) {
 	wg.Add(numGoroutines)
 	start := make(chan struct{})
 
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		go func() {
 			defer wg.Done()
 			<-start
@@ -308,7 +308,7 @@ func TestGetDoesNotRetrySecond401(t *testing.T) {
 	if !strava.AsStravaError(err, &stravaErr) {
 		t.Fatalf("expected StravaError, got %T: %v", err, err)
 	}
-	if stravaErr.StatusCode != 401 {
+	if stravaErr.StatusCode != http.StatusUnauthorized {
 		t.Errorf("StatusCode = %d, want 401", stravaErr.StatusCode)
 	}
 
@@ -344,7 +344,7 @@ func TestGetReturnsStravaErrorForHTTPErrors(t *testing.T) {
 	if !strava.AsStravaError(err, &stravaErr) {
 		t.Fatalf("expected StravaError, got %T: %v", err, err)
 	}
-	if stravaErr.StatusCode != 403 {
+	if stravaErr.StatusCode != http.StatusForbidden {
 		t.Errorf("StatusCode = %d, want 403", stravaErr.StatusCode)
 	}
 	if !strings.Contains(stravaErr.Body, "Rate Limit Exceeded") {
@@ -611,7 +611,7 @@ func TestPostMultipartReturnsStravaErrorOn4xx(t *testing.T) {
 	if !strava.AsStravaError(err, &stravaErr) {
 		t.Fatalf("expected StravaError, got %T: %v", err, err)
 	}
-	if stravaErr.StatusCode != 400 {
+	if stravaErr.StatusCode != http.StatusBadRequest {
 		t.Errorf("StatusCode = %d, want 400", stravaErr.StatusCode)
 	}
 }

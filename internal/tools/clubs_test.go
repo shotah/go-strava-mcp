@@ -10,7 +10,7 @@ import (
 	"github.com/shotah/go-strava-mcp/internal/tools"
 )
 
-// --- get_club_activities tests ---
+// --- clubs_list_activities tests ---
 
 func TestGetClubActivitiesBasic(t *testing.T) {
 	var gotPath, gotMethod string

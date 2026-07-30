@@ -22,6 +22,6 @@ Type "# Ask Claude: 'What are my recent activities?'"
 Enter
 Sleep 500ms
 
-Type "# Claude uses get_activities tool via strava-mcp"
+Type "# Claude uses activities_list tool via strava-mcp"
 Enter
 Sleep 2s

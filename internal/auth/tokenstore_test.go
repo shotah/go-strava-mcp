@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -81,7 +83,7 @@ func TestReadReturnsTokensFromValidFile(t *testing.T) {
 	path := filepath.Join(dir, "tokens.json")
 
 	data := `{"access_token":"read-access","refresh_token":"read-refresh","expires_at":1700000000}`
-	if err := os.WriteFile(path, []byte(data), 0600); err != nil {
+	if err := os.WriteFile(path, []byte(data), 0o600); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
 
@@ -117,7 +119,7 @@ func TestReadErrorForInvalidJSON(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "tokens.json")
 
-	if err := os.WriteFile(path, []byte("not valid json{{{"), 0600); err != nil {
+	if err := os.WriteFile(path, []byte("not valid json{{{"), 0o600); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
 
@@ -190,7 +192,29 @@ func TestWriteUsesAtomicRename(t *testing.T) {
 	}
 }
 
+func TestWriteErrorWhenParentIsAFile(t *testing.T) {
+	dir := t.TempDir()
+	blocker := filepath.Join(dir, "not-a-dir")
+	if err := os.WriteFile(blocker, []byte("x"), 0o600); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	// A regular file cannot become a parent directory.
+	store := auth.NewFileTokenStore(filepath.Join(blocker, "nested", "tokens.json"))
+	err := store.Write(&auth.Tokens{AccessToken: "a", RefreshToken: "b", ExpiresAt: 1})
+	if err == nil {
+		t.Fatal("Write() = nil, want an error when the parent path is a file")
+	}
+	if !strings.Contains(err.Error(), "create token directory") {
+		t.Errorf("error = %v, want it to mention creating the directory", err)
+	}
+}
+
 func TestWriteFilePermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows does not implement POSIX file mode bits")
+	}
+
 	dir := t.TempDir()
 	path := filepath.Join(dir, "tokens.json")
 	store := auth.NewFileTokenStore(path)
@@ -211,7 +235,7 @@ func TestWriteFilePermissions(t *testing.T) {
 	}
 
 	perm := info.Mode().Perm()
-	if perm != 0600 {
-		t.Errorf("file permissions = %o, want %o", perm, 0600)
+	if perm != 0o600 {
+		t.Errorf("file permissions = %o, want %o", perm, 0o600)
 	}
 }

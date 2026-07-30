@@ -12,7 +12,7 @@ import (
 	"github.com/shotah/go-strava-mcp/internal/update"
 )
 
-// checkUpdateResponse is the structured JSON returned by strava_check_update.
+// checkUpdateResponse is the structured JSON returned by utility_check_update.
 type checkUpdateResponse struct {
 	CurrentVersion  string `json:"current_version"`
 	LatestVersion   string `json:"latest_version"`
@@ -20,14 +20,14 @@ type checkUpdateResponse struct {
 	ReleaseURL      string `json:"release_url"`
 }
 
-// selfUpdateResponse is the structured JSON returned by strava_self_update.
+// selfUpdateResponse is the structured JSON returned by utility_self_update.
 type selfUpdateResponse struct {
 	Updated    bool   `json:"updated"`
 	NewVersion string `json:"new_version,omitempty"`
 	Message    string `json:"message"`
 }
 
-var checkUpdateTool = mcp.NewTool("strava_check_update",
+var checkUpdateTool = mcp.NewTool("utility_check_update",
 	mcp.WithDescription(`Checks if a newer version of strava-mcp is available.
 
 Returns structured JSON with version information:
@@ -40,11 +40,11 @@ This is a read-only operation with no side effects. Safe to call at any time.
 Uses cached results when available (24h cooldown on GitHub API calls).`),
 )
 
-var selfUpdateTool = mcp.NewTool("strava_self_update",
+var selfUpdateTool = mcp.NewTool("utility_self_update",
 	mcp.WithDescription(`Updates strava-mcp to the latest version.
 
 Downloads the latest release, verifies the SHA256 checksum, and replaces
-the current binary. The server continues running after the update completes â€”
+the current binary. The server continues running after the update completes —
 restart strava-mcp to use the new version.
 
 Returns structured JSON with:
@@ -60,16 +60,16 @@ Will return an error if:
 	mcp.WithBoolean("confirm", mcp.Description("Set to true to proceed with the update. Required to prevent accidental updates.")),
 )
 
-// HandleCheckUpdate returns a handler for the strava_check_update tool.
+// HandleCheckUpdate returns a handler for the utility_check_update tool.
 func HandleCheckUpdate(checker *update.Checker) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		if checker.IsDev() {
-			return mcp.NewToolResultError("strava_check_update: version check not available for dev builds"), nil
+			return mcp.NewToolResultError("utility_check_update: version check not available for dev builds"), nil
 		}
 
 		result, err := checker.Check(ctx)
 		if err != nil {
-			return mcp.NewToolResultErrorf("strava_check_update: %v", err), nil
+			return mcp.NewToolResultErrorf("utility_check_update: %v", err), nil
 		}
 
 		resp := checkUpdateResponse{
@@ -81,14 +81,14 @@ func HandleCheckUpdate(checker *update.Checker) server.ToolHandlerFunc {
 
 		data, err := json.MarshalIndent(resp, "", "  ")
 		if err != nil {
-			return mcp.NewToolResultErrorf("strava_check_update: marshal response: %v", err), nil
+			return mcp.NewToolResultErrorf("utility_check_update: marshal response: %v", err), nil
 		}
 
 		return mcp.NewToolResultText(string(data)), nil
 	}
 }
 
-// HandleSelfUpdate returns a handler for the strava_self_update tool.
+// HandleSelfUpdate returns a handler for the utility_self_update tool.
 // CRITICAL: This handler never calls os.Exit(). The MCP response must be
 // sent before any process state changes.
 func HandleSelfUpdate(checker *update.Checker, updater *update.Updater) server.ToolHandlerFunc {
@@ -96,45 +96,45 @@ func HandleSelfUpdate(checker *update.Checker, updater *update.Updater) server.T
 		// Require explicit confirmation to prevent accidental updates.
 		confirm := request.GetBool("confirm", false)
 		if !confirm {
-			return mcp.NewToolResultError("strava_self_update: set confirm: true to proceed with the update"), nil
+			return mcp.NewToolResultError("utility_self_update: set confirm: true to proceed with the update"), nil
 		}
 
 		if checker.IsDev() {
-			return mcp.NewToolResultError("strava_self_update: update not available for dev builds"), nil
+			return mcp.NewToolResultError("utility_self_update: update not available for dev builds"), nil
 		}
 
 		// Resolve the actual binary path (follows symlinks).
 		exe, err := os.Executable()
 		if err != nil {
-			return mcp.NewToolResultErrorf("strava_self_update: cannot determine binary path: %v", err), nil
+			return mcp.NewToolResultErrorf("utility_self_update: cannot determine binary path: %v", err), nil
 		}
 		binaryPath, err := filepath.EvalSymlinks(exe)
 		if err != nil {
 			binaryPath = exe
 		}
 
-		// Homebrew detection â€” refuse and hint at brew upgrade.
+		// Homebrew detection — refuse and hint at brew upgrade.
 		if update.IsHomebrew(binaryPath) {
-			return mcp.NewToolResultError("strava_self_update: installed via Homebrew â€” use 'brew upgrade strava-mcp' instead"), nil
+			return mcp.NewToolResultError("utility_self_update: installed via Homebrew — use 'brew upgrade strava-mcp' instead"), nil
 		}
 
 		// Permission pre-check before downloading anything.
 		if err := update.CheckWritePermission(binaryPath); err != nil {
-			return mcp.NewToolResultErrorf("strava_self_update: %v", err), nil
+			return mcp.NewToolResultErrorf("utility_self_update: %v", err), nil
 		}
 
-		// Run the update. Progress is a no-op â€” MCP tools return structured
+		// Run the update. Progress is a no-op — MCP tools return structured
 		// results, not streaming stderr output.
 		progress := func(string) {}
 
 		if err := updater.Update(ctx, binaryPath, progress); err != nil {
-			return mcp.NewToolResultErrorf("strava_self_update: %v", err), nil
+			return mcp.NewToolResultErrorf("utility_self_update: %v", err), nil
 		}
 
 		// Check latest version for the response.
 		result, err := checker.Check(ctx)
 		if err != nil {
-			// Update succeeded but we can't determine the version â€” still report success.
+			// Update succeeded but we can't determine the version — still report success.
 			resp := selfUpdateResponse{
 				Updated: true,
 				Message: "Update complete. Restart strava-mcp to use the new version.",
@@ -151,7 +151,7 @@ func HandleSelfUpdate(checker *update.Checker, updater *update.Updater) server.T
 
 		data, err := json.MarshalIndent(resp, "", "  ")
 		if err != nil {
-			return mcp.NewToolResultErrorf("strava_self_update: marshal response: %v", err), nil
+			return mcp.NewToolResultErrorf("utility_self_update: marshal response: %v", err), nil
 		}
 
 		return mcp.NewToolResultText(string(data)), nil

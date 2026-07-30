@@ -5,8 +5,9 @@ on:
     branches: [main, master]
   pull_request:
 
+# contents:write needed to push the coverage badge to gh-pages on main.
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   check:
@@ -14,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-go@v5
         with:
@@ -31,5 +34,70 @@ jobs:
         with:
           version: v2.12.2
 
-      - name: Test
-        run: go test ./... -count=1 -timeout 5m
+      - name: Test + coverage
+        run: |
+          # Full module coverage gate (matches make coverage / pre-commit).
+          go test ./... \
+            -coverprofile=coverage.out -covermode=atomic -count=1 -timeout 5m
+          go tool cover -func=coverage.out | tee coverage.txt
+
+      - name: Enforce coverage >= 70%
+        run: |
+          TOTAL=$(go tool cover -func=coverage.out | awk '/^total:/{print $3}' | tr -d '%')
+          echo "Total coverage: ${TOTAL}%"
+          awk -v t="$TOTAL" 'BEGIN {
+            if ((t+0) < 70) {
+              printf "Coverage %.1f%% is below the 70%% minimum\n", t+0
+              exit 1
+            }
+            printf "Coverage %.1f%% meets the 70%% minimum\n", t+0
+          }'
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            coverage.out
+            coverage.txt
+
+      - name: Create badges directory
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: mkdir -p badges
+
+      - name: Generate coverage badge
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          chmod +x scripts/coverage-badge.sh
+          ./scripts/coverage-badge.sh coverage.out badges/coverage.svg
+
+      - name: Push badge to gh-pages branch
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          REPO="${{ github.repository }}"
+          BADGE="${GITHUB_WORKSPACE}/badges/coverage.svg"
+          WORKDIR=$(mktemp -d)
+          cd "$WORKDIR"
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO}.git"
+
+          if git fetch --depth 1 origin gh-pages; then
+            git checkout -B gh-pages FETCH_HEAD
+          else
+            git checkout --orphan gh-pages
+          fi
+
+          mkdir -p badges
+          cp "$BADGE" badges/coverage.svg
+          git add badges/coverage.svg
+          if git diff --staged --quiet; then
+            echo "No badge change; skipping push."
+          else
+            git commit -m "chore: update coverage badge [skip ci]"
+            git push origin HEAD:gh-pages
+          fi

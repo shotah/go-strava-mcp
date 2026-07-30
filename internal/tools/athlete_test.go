@@ -11,7 +11,7 @@ import (
 	"github.com/shotah/go-strava-mcp/internal/tools"
 )
 
-// --- get_athlete tests ---
+// --- athlete_get tests ---
 
 func TestGetAthleteBasic(t *testing.T) {
 	var gotPath, gotMethod string
@@ -102,15 +102,15 @@ func TestGetAthleteStravaError403(t *testing.T) {
 	}
 }
 
-// --- get_athlete_stats tests ---
+// --- athlete_get_stats tests ---
 
 func TestGetAthleteStatsWithExplicitId(t *testing.T) {
 	var gotPath string
-	var athleteCallCount int32
+	var athleteCallCount atomic.Int32
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/athlete" {
-			atomic.AddInt32(&athleteCallCount, 1)
+			athleteCallCount.Add(1)
 			t.Error("/athlete should NOT be called when id is provided")
 		}
 		gotPath = r.URL.Path
@@ -141,19 +141,19 @@ func TestGetAthleteStatsWithExplicitId(t *testing.T) {
 		t.Errorf("result should contain stats data, got: %s", text)
 	}
 
-	if atomic.LoadInt32(&athleteCallCount) != 0 {
+	if athleteCallCount.Load() != 0 {
 		t.Error("/athlete was called but should NOT have been (id was provided)")
 	}
 }
 
 func TestGetAthleteStatsAutoFetchId(t *testing.T) {
-	var athleteCallCount int32
+	var athleteCallCount atomic.Int32
 	var statsPath string
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/athlete":
-			atomic.AddInt32(&athleteCallCount, 1)
+			athleteCallCount.Add(1)
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{"id":99,"firstname":"Jane"}`))
 		case "/athletes/99/stats":
@@ -177,8 +177,8 @@ func TestGetAthleteStatsAutoFetchId(t *testing.T) {
 		t.Fatalf("handler error: %v", err)
 	}
 
-	if atomic.LoadInt32(&athleteCallCount) != 1 {
-		t.Errorf("expected /athlete to be called once for auto-fetch, got %d calls", atomic.LoadInt32(&athleteCallCount))
+	if athleteCallCount.Load() != 1 {
+		t.Errorf("expected /athlete to be called once for auto-fetch, got %d calls", athleteCallCount.Load())
 	}
 	if statsPath != "/athletes/99/stats" {
 		t.Errorf("stats path = %q, want /athletes/99/stats", statsPath)
@@ -219,7 +219,7 @@ func TestGetAthleteStatsAutoFetchError(t *testing.T) {
 		t.Fatal("expected error result when /athlete fails during auto-fetch")
 	}
 	text := extractResultText(t, result)
-	if !strings.Contains(text, "get_athlete_stats") {
+	if !strings.Contains(text, "athlete_get_stats") {
 		t.Errorf("error should mention tool name, got: %s", text)
 	}
 }

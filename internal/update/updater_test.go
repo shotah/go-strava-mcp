@@ -33,7 +33,7 @@ func createTestArchive(t *testing.T, dir, binaryContent string) string {
 	if err := tw.WriteHeader(&tar.Header{
 		Name:     "strava-mcp",
 		Size:     int64(len(binaryContent)),
-		Mode:     0755,
+		Mode:     0o755,
 		Typeflag: tar.TypeReg,
 	}); err != nil {
 		t.Fatal(err)
@@ -47,7 +47,7 @@ func createTestArchive(t *testing.T, dir, binaryContent string) string {
 	if err := tw.WriteHeader(&tar.Header{
 		Name:     "README.md",
 		Size:     int64(len(readme)),
-		Mode:     0644,
+		Mode:     0o644,
 		Typeflag: tar.TypeReg,
 	}); err != nil {
 		t.Fatal(err)
@@ -78,7 +78,7 @@ func createReadmeOnlyArchive(t *testing.T, dir string) string {
 	if err := tw.WriteHeader(&tar.Header{
 		Name:     "README.md",
 		Size:     int64(len(readme)),
-		Mode:     0644,
+		Mode:     0o644,
 		Typeflag: tar.TypeReg,
 	}); err != nil {
 		t.Fatal(err)
@@ -131,7 +131,7 @@ func TestIsHomebrew(t *testing.T) {
 func TestCheckWritePermission_WritableDir(t *testing.T) {
 	dir := t.TempDir()
 	binaryPath := filepath.Join(dir, "strava-mcp")
-	if err := os.WriteFile(binaryPath, []byte("binary"), 0755); err != nil {
+	if err := os.WriteFile(binaryPath, []byte("binary"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -141,17 +141,21 @@ func TestCheckWritePermission_WritableDir(t *testing.T) {
 }
 
 func TestCheckWritePermission_ReadOnlyDir(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod cannot make a directory read-only on Windows")
+	}
+
 	dir := t.TempDir()
 	binaryPath := filepath.Join(dir, "strava-mcp")
-	if err := os.WriteFile(binaryPath, []byte("binary"), 0755); err != nil {
+	if err := os.WriteFile(binaryPath, []byte("binary"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
 	// Make directory read-only.
-	if err := os.Chmod(dir, 0555); err != nil {
+	if err := os.Chmod(dir, 0o555); err != nil {
 		t.Fatal(err)
 	}
-	defer os.Chmod(dir, 0755)
+	defer os.Chmod(dir, 0o755)
 
 	err := CheckWritePermission(binaryPath)
 	if err == nil {
@@ -228,7 +232,7 @@ func TestParseChecksum(t *testing.T) {
 	dir := t.TempDir()
 	checksumFile := filepath.Join(dir, "checksums.txt")
 	content := "abc123def456  strava-mcp_1.2.0_darwin_arm64.tar.gz\nfed789abc012  strava-mcp_1.2.0_linux_amd64.tar.gz\n"
-	if err := os.WriteFile(checksumFile, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(checksumFile, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -271,7 +275,7 @@ func TestVerifySHA256_Match(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "testfile")
 	content := []byte("hello world")
-	if err := os.WriteFile(path, content, 0644); err != nil {
+	if err := os.WriteFile(path, content, 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -284,7 +288,7 @@ func TestVerifySHA256_Match(t *testing.T) {
 func TestVerifySHA256_Mismatch(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "testfile")
-	if err := os.WriteFile(path, []byte("hello world"), 0644); err != nil {
+	if err := os.WriteFile(path, []byte("hello world"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -316,12 +320,15 @@ func TestExtractBinary(t *testing.T) {
 		t.Errorf("extracted content = %q, want %q", string(data), binaryContent)
 	}
 
-	// Verify permissions.
+	// Verify permissions. Windows has no executable bit.
+	if runtime.GOOS == "windows" {
+		return
+	}
 	info, err := os.Stat(dest)
 	if err != nil {
 		t.Fatalf("stat extracted binary: %v", err)
 	}
-	if info.Mode()&0111 == 0 {
+	if info.Mode()&0o111 == 0 {
 		t.Errorf("extracted binary should be executable, mode = %v", info.Mode())
 	}
 }
@@ -361,7 +368,7 @@ func TestUpdate_AlreadyUpToDate(t *testing.T) {
 	}
 
 	binaryPath := filepath.Join(dir, "strava-mcp")
-	if err := os.WriteFile(binaryPath, []byte("old"), 0755); err != nil {
+	if err := os.WriteFile(binaryPath, []byte("old"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -447,7 +454,7 @@ func TestUpdate_FullSuccess(t *testing.T) {
 	// Write the "old" binary.
 	binaryPath := filepath.Join(dir, "strava-mcp")
 	oldContent := "#!/bin/sh\necho old-version"
-	if err := os.WriteFile(binaryPath, []byte(oldContent), 0755); err != nil {
+	if err := os.WriteFile(binaryPath, []byte(oldContent), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -536,7 +543,7 @@ func TestUpdate_ChecksumMismatch(t *testing.T) {
 
 	binaryPath := filepath.Join(dir, "strava-mcp")
 	oldContent := "#!/bin/sh\necho old"
-	if err := os.WriteFile(binaryPath, []byte(oldContent), 0755); err != nil {
+	if err := os.WriteFile(binaryPath, []byte(oldContent), 0o755); err != nil {
 		t.Fatal(err)
 	}
 

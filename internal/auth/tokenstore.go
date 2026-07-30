@@ -56,7 +56,7 @@ func (s *FileTokenStore) Read() (*Tokens, error) {
 
 // Write persists tokens to disk using atomic write-then-rename.
 // It creates the parent directory if it does not exist, writes to a
-// temporary file with 0600 permissions, fsyncs, then renames atomically.
+// temporary file with 0o600 permissions, fsyncs, then renames atomically.
 func (s *FileTokenStore) Write(tokens *Tokens) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -68,13 +68,13 @@ func (s *FileTokenStore) Write(tokens *Tokens) error {
 
 	// Ensure directory exists
 	dir := filepath.Dir(s.path)
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("create token directory: %w", err)
 	}
 
 	// Write to temp file
 	tmpPath := s.path + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0600); err != nil {
+	if err := os.WriteFile(tmpPath, data, 0o600); err != nil {
 		return fmt.Errorf("write temp token file: %w", err)
 	}
 

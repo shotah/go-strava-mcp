@@ -4,13 +4,15 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 )
 
 func TestNewCache_PathConstruction(t *testing.T) {
-	c := NewCache("/tmp/.strava")
-	want := "/tmp/.strava/update-check.json"
+	dir := filepath.Join("tmp", ".strava")
+	c := NewCache(dir)
+	want := filepath.Join(dir, "update-check.json")
 	if c.Path() != want {
 		t.Errorf("NewCache path = %q, want %q", c.Path(), want)
 	}
@@ -34,7 +36,7 @@ func TestShouldCheck_ExpiredCooldown(t *testing.T) {
 		LatestVersion: "v1.0.0",
 	}
 	raw, _ := json.Marshal(data)
-	if err := os.WriteFile(c.Path(), raw, 0600); err != nil {
+	if err := os.WriteFile(c.Path(), raw, 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -53,7 +55,7 @@ func TestShouldCheck_WithinCooldown(t *testing.T) {
 		LatestVersion: "v1.0.0",
 	}
 	raw, _ := json.Marshal(data)
-	if err := os.WriteFile(c.Path(), raw, 0600); err != nil {
+	if err := os.WriteFile(c.Path(), raw, 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -67,7 +69,7 @@ func TestShouldCheck_CorruptFile(t *testing.T) {
 	c := NewCache(dir)
 
 	// Write invalid JSON.
-	if err := os.WriteFile(c.Path(), []byte("not json"), 0600); err != nil {
+	if err := os.WriteFile(c.Path(), []byte("not json"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -89,8 +91,9 @@ func TestWrite_AtomicCreation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cache file missing after Write: %v", err)
 	}
-	if info.Mode().Perm() != 0600 {
-		t.Errorf("file permissions = %o, want 0600", info.Mode().Perm())
+	// Windows does not implement POSIX mode bits.
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
+		t.Errorf("file permissions = %o, want 0o600", info.Mode().Perm())
 	}
 
 	// Verify content.

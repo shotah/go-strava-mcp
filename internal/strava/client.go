@@ -90,16 +90,16 @@ func (c *Client) Get(ctx context.Context, path string, params map[string]string)
 }
 
 // Post makes an authenticated POST request to the Strava API.
-func (c *Client) Post(ctx context.Context, path string, body interface{}) ([]byte, error) {
+func (c *Client) Post(ctx context.Context, path string, body any) ([]byte, error) {
 	return c.jsonRequest(ctx, http.MethodPost, path, body)
 }
 
 // Put makes an authenticated PUT request to the Strava API.
-func (c *Client) Put(ctx context.Context, path string, body interface{}) ([]byte, error) {
+func (c *Client) Put(ctx context.Context, path string, body any) ([]byte, error) {
 	return c.jsonRequest(ctx, http.MethodPut, path, body)
 }
 
-func (c *Client) jsonRequest(ctx context.Context, method, path string, body interface{}) ([]byte, error) {
+func (c *Client) jsonRequest(ctx context.Context, method, path string, body any) ([]byte, error) {
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request body: %w", err)
@@ -171,7 +171,7 @@ func (c *Client) doRequest(ctx context.Context, method, fullURL string, body []b
 
 	respBody, err := c.executeRequest(ctx, method, fullURL, bodyReader(), contentType, tokens.AccessToken)
 	if err != nil {
-		// Check for 401 â€” retry once after refresh
+		// Check for 401 — retry once after refresh
 		var stravaErr *StravaError
 		if errors.As(err, &stravaErr) && stravaErr.StatusCode == http.StatusUnauthorized {
 			tokens, refreshErr := c.refresh(ctx)
@@ -225,7 +225,7 @@ func (c *Client) executeRequest(ctx context.Context, method, fullURL string, bod
 
 // refresh performs a token refresh using singleflight to coalesce concurrent requests.
 func (c *Client) refresh(ctx context.Context) (*auth.Tokens, error) {
-	result, err, shared := c.refreshGroup.Do("refresh", func() (interface{}, error) {
+	result, err, shared := c.refreshGroup.Do("refresh", func() (any, error) {
 		tokens, err := c.tokenStore.Read()
 		if err != nil {
 			return nil, fmt.Errorf("read tokens for refresh: %w", err)
@@ -240,7 +240,13 @@ func (c *Client) refresh(ctx context.Context) (*auth.Tokens, error) {
 			"refresh_token": {tokens.RefreshToken},
 		}
 
-		resp, err := http.PostForm(c.tokenURL, data)
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.tokenURL, strings.NewReader(data.Encode()))
+		if err != nil {
+			return nil, fmt.Errorf("create refresh request: %w", err)
+		}
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		resp, err := c.httpClient.Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("refresh request: %w", err)
 		}
@@ -270,7 +276,11 @@ func (c *Client) refresh(ctx context.Context) (*auth.Tokens, error) {
 	if shared {
 		c.logger.Debug("token refresh result shared with concurrent caller")
 	}
-	return result.(*auth.Tokens), nil
+	tokens, ok := result.(*auth.Tokens)
+	if !ok {
+		return nil, fmt.Errorf("unexpected refresh result type %T", result)
+	}
+	return tokens, nil
 }
 
 // updateRateLimits parses and stores rate limit information from response headers.

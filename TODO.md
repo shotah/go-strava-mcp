@@ -1,6 +1,6 @@
 # TODO — MCP tool rename (`{service}_{verb}_{object}`)
 
-**Status:** pending  
+**Status:** done (2026-07-29)
 **Why:** Hosts expose `{server}__{tool}` (ai-gantry server id = `strava`). Bare
 or double-prefixed names (`strava_get_activities`) collide mentally with
 Garmin/Google and starve small models. Align with
@@ -10,8 +10,8 @@ verb + object.
 **Rule:** Do **not** prefix tools with `strava_` — the server id already supplies
 that. Host forms look like `strava__activities_list`, `strava__athlete_get`.
 
-**Also:** MCP server name should be short `strava` (not `strava-mcp`). Binary /
-CLI can stay `strava-mcp`.
+**Also:** MCP server name is short `strava` (not `strava-mcp`). Binary /
+CLI stays `strava-mcp`.
 
 **Consumer:** [ai-gantry](https://github.com/shotah/ai-gantry) persona `TOOLS.md`
 + master plan in repo `todo.md` (Gemini train → cut back to Qwen).
@@ -44,10 +44,10 @@ Source of truth: `mcp.NewTool(...)` names in `internal/tools/*.go`.
 
 Checklist:
 
-- [ ] Rename `mcp.NewTool` strings in `internal/tools/*.go`
-- [ ] Update MCP server name `strava-mcp` → `strava`
-- [ ] Update README / MCP docs examples
-- [ ] Tests that assert tool names
+- [x] Rename `mcp.NewTool` strings in `internal/tools/*.go`
+- [x] Update MCP server name `strava-mcp` → `strava`
+- [x] Update README / MCP docs examples
+- [x] Tests that assert tool names
 - [ ] Cut release; ai-gantry persona + any hardcoding
 
 ---
@@ -66,8 +66,8 @@ Same rule applied to every tool (no dual aliases).
 | `strava_check_update` | `utility_check_update` |
 | `strava_self_update` | `utility_self_update` |
 
-- [ ] Full pass over `internal/tools/`
-- [ ] No dual aliases (one name set per release — same as google-mcp)
+- [x] Full pass over `internal/tools/`
+- [x] No dual aliases (one name set per release — same as google-mcp)
 - [ ] Release notes with old→new table (when cutting the release)
 
 ---
@@ -77,7 +77,7 @@ Same rule applied to every tool (no dual aliases).
 - [x] Module path → `github.com/shotah/go-strava-mcp`
 - [x] Go 1.26
 - [x] Makefile / CI / release / pre-commit / `.vscode/settings.json` (match siblings)
-- [ ] Tool rename wave above
+- [x] Tool rename wave above
 - [ ] Announce breaking change in GitHub Release notes (on next release)
 
 ---

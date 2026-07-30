@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -222,7 +223,7 @@ func TestCheckWithCooldown_ExpiredCooldownCallsAPI(t *testing.T) {
 		ReleaseURL:    "https://example.com/old",
 	}
 	raw, _ := json.Marshal(data)
-	os.WriteFile(cache.Path(), raw, 0600)
+	os.WriteFile(cache.Path(), raw, 0o600)
 
 	c := NewChecker("1.0.0", cache, discardLogger())
 	c.apiURL = srv.URL
@@ -311,7 +312,7 @@ func TestFormatCheckOutput_UpdateAvailable(t *testing.T) {
 		t.Fatal("FormatCheckOutput should not be empty")
 	}
 	for _, substr := range []string{"Current:", "Latest:", "Update available!"} {
-		if !contains(got, substr) {
+		if !strings.Contains(got, substr) {
 			t.Errorf("FormatCheckOutput missing %q in:\n%s", substr, got)
 		}
 	}
@@ -325,21 +326,7 @@ func TestFormatCheckOutput_UpToDate(t *testing.T) {
 		LatestVersion:   "v1.0.0",
 	}
 	got := c.FormatCheckOutput(r)
-	if !contains(got, "Up to date") {
+	if !strings.Contains(got, "Up to date") {
 		t.Errorf("FormatCheckOutput should contain 'Up to date', got %q", got)
 	}
-}
-
-// contains checks if s contains substr (simple helper for readable tests).
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsStr(s, substr))
-}
-
-func containsStr(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

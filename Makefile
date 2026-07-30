@@ -46,8 +46,8 @@ help: ## Show this help
 	@echo   test                   Unit tests
 	@echo   test-short             Unit tests with -short
 	@echo   test-race              Unit tests with the race detector
-	@echo   coverage               Library coverage report (excludes main)
-	@echo   check                  Autofix, lint, and unit tests
+	@echo   coverage               Coverage report + fail if under MIN_COVERAGE (70)
+	@echo   check                  Autofix, lint, tests + coverage gate (pre-commit)
 	@echo.
 	@echo Build ^& run
 	@echo   build                  Compile all packages (sanity check)
@@ -61,7 +61,7 @@ help: ## Show this help
 	@echo   clean                  Remove binaries and coverage artifacts
 	@echo.
 	@echo Project-specific
-	@echo   install-hooks          Install git pre-commit (autofix + lint + test)
+	@echo   install-hooks          Install git pre-commit (autofix + lint + coverage)
 	@echo   version                Show current VERSION file + latest git tag
 	@echo   release                Bump tag + latest, update VERSION, push (BUMP=patch^|minor^|major)
 	@echo.
@@ -91,15 +91,23 @@ test-short: ## Unit tests with -short
 test-race: ## Unit tests with the race detector (slower, worth it)
 	go test -race $(PKG)
 
-# Default coverage scope excludes CLI mains.
-# Override: make coverage PKG=./...
-COVERAGE_PKG ?= ./internal/...
+# Default coverage scope matches CI / pre-commit (full module). Override: make coverage COVERAGE_PKG=./internal/...
+COVERAGE_PKG ?= ./...
+MIN_COVERAGE ?= 70
 
-coverage: ## Tests + coverage report for library packages (writes coverage.out)
+coverage: ## Tests + coverage report; fails if total < MIN_COVERAGE (default 70)
 	go test -cover "-coverprofile=coverage.out" -covermode=atomic $(COVERAGE_PKG)
 	go tool cover "-func=coverage.out"
+	@TOTAL=$$(go tool cover -func=coverage.out | awk '/^total:/{print $$3}' | tr -d '%'); \
+	awk -v t="$$TOTAL" -v min="$(MIN_COVERAGE)" 'BEGIN { \
+	  if ((t+0) < (min+0)) { \
+	    printf "Coverage %.1f%% is below the %s%% minimum\n", t+0, min; \
+	    exit 1 \
+	  } \
+	  printf "Coverage %.1f%% meets the %s%% minimum\n", t+0, min \
+	}'
 
-check: fmt lint test ## Autofix, lint, test (matches pre-commit)
+check: fmt lint coverage ## Autofix, lint, test + coverage gate (matches pre-commit)
 
 ##@ Build & run
 

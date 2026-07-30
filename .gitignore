@@ -24,11 +24,23 @@ Thumbs.db
 # Test / coverage artifacts
 *.test
 *.out
-coverage
+/coverage
 coverage.out
 coverage.txt
 coverage.html
 *.coverprofile
+/cov0
+/covmain
+/cov[0-9]*
+
+# Agent / local scratch dumps (lint, test, vet captures)
+/lint*.txt
+/t-*.txt
+/test-*.txt
+/vet.txt
+
+# Local badge output (CI publishes to gh-pages)
+/badges/
 
 # goreleaser output
 dist/

@@ -65,7 +65,7 @@ func main() {
 	}
 
 	versionPath := filepath.Join(root, "VERSION")
-	// VERSION is a public semver marker, not a secret — 0644 is intentional.
+	// VERSION is a public semver marker, not a secret — 0o644 is intentional.
 	if err := os.WriteFile(versionPath, []byte(next+"\n"), 0o644); err != nil { //nolint:gosec // G306: non-secret project file
 		fatalf("write VERSION: %v", err)
 	}
@@ -188,6 +188,7 @@ func moduleRoot() (string, error) {
 
 func gitOutput(args ...string) string {
 	cmd := exec.Command("git", args...)
+	cmd.Env = gitEnv(os.Environ())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return ""
@@ -197,9 +198,33 @@ func gitOutput(args ...string) string {
 
 func gitRun(args ...string) error {
 	cmd := exec.Command("git", args...)
+	cmd.Env = gitEnv(os.Environ())
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+// gitEnv drops git overrides that pin a parent repository (GIT_DIR,
+// GIT_INDEX_FILE, …). Those leak in when tests run under an outer `git commit`
+// pre-commit hook and would make fixture repos write into the wrong index.
+func gitEnv(environ []string) []string {
+	out := make([]string, 0, len(environ))
+	for _, e := range environ {
+		key, _, ok := strings.Cut(e, "=")
+		if !ok {
+			out = append(out, e)
+			continue
+		}
+		switch key {
+		case "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
+			"GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX", "GIT_COMMON_DIR",
+			"GIT_TEMPLATE_DIR":
+			continue
+		default:
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 func fatalf(format string, args ...any) {

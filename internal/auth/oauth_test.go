@@ -20,7 +20,7 @@ func TestCallbackHandlerExtractsCode(t *testing.T) {
 
 	handler := auth.NewCallbackHandler(state, codeCh, errCh)
 
-	req := httptest.NewRequest("GET", "/callback?code=test-auth-code&state=test-state-123", nil)
+	req := httptest.NewRequest(http.MethodGet, "/callback?code=test-auth-code&state=test-state-123", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
@@ -52,7 +52,7 @@ func TestCallbackHandlerRejectsBadState(t *testing.T) {
 
 	handler := auth.NewCallbackHandler(state, codeCh, errCh)
 
-	req := httptest.NewRequest("GET", "/callback?code=test-code&state=wrong-state", nil)
+	req := httptest.NewRequest(http.MethodGet, "/callback?code=test-code&state=wrong-state", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
@@ -82,7 +82,7 @@ func TestCallbackHandlerRejectsStravaError(t *testing.T) {
 
 	handler := auth.NewCallbackHandler(state, codeCh, errCh)
 
-	req := httptest.NewRequest("GET", "/callback?error=access_denied&state=test-state", nil)
+	req := httptest.NewRequest(http.MethodGet, "/callback?error=access_denied&state=test-state", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
@@ -113,7 +113,7 @@ func TestCallbackHandlerRejectsStravaError(t *testing.T) {
 func TestExchangeCodePostsCorrectFields(t *testing.T) {
 	var gotForm url.Values
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
+		if r.Method != http.MethodPost {
 			t.Errorf("method = %q, want POST", r.Method)
 		}
 		body, _ := io.ReadAll(r.Body)
@@ -178,7 +178,7 @@ func TestSuccessPageContainsAutoClose(t *testing.T) {
 
 	handler := auth.NewCallbackHandler(state, codeCh, errCh)
 
-	req := httptest.NewRequest("GET", "/callback?code=test-code&state=test-state", nil)
+	req := httptest.NewRequest(http.MethodGet, "/callback?code=test-code&state=test-state", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
@@ -197,7 +197,7 @@ func TestErrorPageContainsTryAgain(t *testing.T) {
 
 	handler := auth.NewCallbackHandler(state, codeCh, errCh)
 
-	req := httptest.NewRequest("GET", "/callback?error=access_denied&state=test-state", nil)
+	req := httptest.NewRequest(http.MethodGet, "/callback?error=access_denied&state=test-state", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
@@ -253,7 +253,7 @@ func TestFetchAthleteNameReturnsName(t *testing.T) {
 	var gotAuth string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotAuth = r.Header.Get("Authorization")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]any{
 			"firstname": "Jane",
 			"lastname":  "Doe",
 		})

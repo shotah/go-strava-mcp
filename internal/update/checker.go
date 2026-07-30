@@ -62,7 +62,7 @@ func NewChecker(currentVersion string, cache *Cache, logger *slog.Logger) *Check
 	if err == nil {
 		c.currentVer = v
 	}
-	// If parse fails (e.g. "dev"), currentVer stays nil â†’ IsDev() returns true.
+	// If parse fails (e.g. "dev"), currentVer stays nil → IsDev() returns true.
 
 	return c
 }
@@ -79,10 +79,10 @@ func (c *Checker) IsDev() bool {
 }
 
 // Check queries the GitHub Releases API and compares the latest tag against
-// the current version. It does NOT read or write the cache â€” use
+// the current version. It does NOT read or write the cache — use
 // CheckWithCooldown for cache-gated checks.
 func (c *Checker) Check(ctx context.Context) (*Result, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.apiURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.apiURL, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
@@ -129,24 +129,24 @@ func (c *Checker) Check(ctx context.Context) (*Result, error) {
 func (c *Checker) CheckWithCooldown(ctx context.Context, cooldown time.Duration) (*Result, error) {
 	// Dev guard: never check, never call network.
 	if c.IsDev() {
-		return nil, nil
+		return nil, nil //nolint:nilnil // "no result, no error" is the documented background contract
 	}
 
 	// Cooldown gate: return cached result if within window.
 	if !c.cache.ShouldCheck(cooldown) {
 		data, err := c.cache.Read()
 		if err != nil {
-			// Cache unreadable after ShouldCheck said "don't check" â€” skip silently.
-			return nil, nil
+			// Cache unreadable after ShouldCheck said "don't check" - skip silently.
+			return nil, nil //nolint:nilnil,nilerr // background check must never surface cache errors
 		}
 		// Reconstruct a Result from cached data.
 		if data.LatestVersion == "" {
-			return nil, nil
+			return nil, nil //nolint:nilnil // nothing cached yet, nothing to report
 		}
 		cleaned := strings.TrimPrefix(data.LatestVersion, "v")
 		latestVer, err := semver.NewVersion(cleaned)
 		if err != nil {
-			return nil, nil
+			return nil, nil //nolint:nilnil,nilerr // corrupt cached tag is not worth surfacing
 		}
 		return &Result{
 			UpdateAvailable: latestVer.GreaterThan(c.currentVer),

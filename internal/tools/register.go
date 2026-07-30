@@ -2,6 +2,7 @@ package tools
 
 import (
 	"github.com/mark3labs/mcp-go/server"
+
 	"github.com/shotah/go-strava-mcp/internal/strava"
 )
 
