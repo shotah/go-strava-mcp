@@ -362,12 +362,18 @@ func TestStartBackgroundUpdateCheck_NotifiesOnNewRelease(t *testing.T) {
 		}
 	})
 
-	startBackgroundUpdateCheck()
+	done := startBackgroundUpdateCheck()
 
 	select {
 	case <-called:
 	case <-time.After(10 * time.Second):
 		t.Fatal("background update check never queried the release API")
+	}
+	// Wait for the goroutine to finish writing the cache before TempDir cleanup.
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("background update check did not finish")
 	}
 }
 
@@ -414,13 +420,21 @@ func TestServerOptions_NilForDevBuild(t *testing.T) {
 func TestStartBackgroundUpdateCheck_OptOut(t *testing.T) {
 	t.Setenv("STRAVA_MCP_NO_UPDATE_CHECK", "1")
 	// Opt-out returns before touching the cache or the network.
-	startBackgroundUpdateCheck()
+	select {
+	case <-startBackgroundUpdateCheck():
+	case <-time.After(time.Second):
+		t.Fatal("opt-out path should finish immediately")
+	}
 }
 
 func TestStartBackgroundUpdateCheck_DevBuildSkips(t *testing.T) {
 	t.Setenv("STRAVA_MCP_NO_UPDATE_CHECK", "")
 	// A dev build has no comparable version, so the goroutine is never started.
-	startBackgroundUpdateCheck()
+	select {
+	case <-startBackgroundUpdateCheck():
+	case <-time.After(time.Second):
+		t.Fatal("dev-build skip should finish immediately")
+	}
 }
 
 func TestResolveBinaryPath(t *testing.T) {

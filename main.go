@@ -223,7 +223,7 @@ func runServer() error {
 	}
 	slog.Info("starting MCP server", "name", "strava", "version", Version)
 
-	startBackgroundUpdateCheck()
+	_ = startBackgroundUpdateCheck()
 
 	if err := mcpserver.ServeStdio(s); err != nil {
 		return fmt.Errorf("server error: %w", err)
@@ -257,16 +257,24 @@ func serverOptions() *server.Options {
 }
 
 // startBackgroundUpdateCheck launches a non-blocking, silent-fail version check.
-func startBackgroundUpdateCheck() {
+// The returned channel is closed when the check finishes (or immediately when
+// skipped), so tests can wait before TempDir cleanup.
+func startBackgroundUpdateCheck() <-chan struct{} {
+	done := make(chan struct{})
+	finish := func() { close(done) }
+
 	if os.Getenv("STRAVA_MCP_NO_UPDATE_CHECK") != "" {
-		return
+		finish()
+		return done
 	}
 	checker, err := newChecker(slog.Default())
 	if err != nil || checker.IsDev() {
-		return
+		finish()
+		return done
 	}
 
 	go func() {
+		defer finish()
 		defer func() {
 			if r := recover(); r != nil {
 				slog.Debug("update check panicked", "err", r)
@@ -285,6 +293,7 @@ func startBackgroundUpdateCheck() {
 			fmt.Fprintln(os.Stderr, msg)
 		}
 	}()
+	return done
 }
 
 func runAuth() error {
