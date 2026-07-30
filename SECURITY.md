@@ -19,7 +19,7 @@ strava-mcp --update
 
 Instead, report vulnerabilities privately:
 
-1. Go to [GitHub Security Advisories](https://github.com/Stealinglight/StravaMCP/security/advisories/new)
+1. Go to [GitHub Security Advisories](https://github.com/shotah/go-strava-mcp/security/advisories/new)
 2. Click **"Report a vulnerability"**
 3. Provide a description, steps to reproduce, and any relevant logs (redact tokens)
 

@@ -11,7 +11,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 
-	"github.com/Stealinglight/StravaMCP/internal/tools"
+	"github.com/shotah/go-strava-mcp/internal/tools"
 )
 
 // makeRequest creates a mcp.CallToolRequest with the given arguments.

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Stealinglight/StravaMCP/internal/config"
+	"github.com/shotah/go-strava-mcp/internal/config"
 )
 
 func TestLoadReturnsConfigFromEnvVars(t *testing.T) {

@@ -1,4 +1,11 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 version: 2
+
+project_name: strava-mcp
+
+before:
+  hooks:
+    - go mod tidy
 
 builds:
   - id: strava-mcp
@@ -9,9 +16,13 @@ builds:
     goos:
       - darwin
       - linux
+      - windows
     goarch:
       - amd64
       - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
     ldflags:
       - -s -w
       - -X main.Version={{.Version}}
@@ -19,12 +30,17 @@ builds:
       - -X main.Date={{.Date}}
 
 archives:
-  - id: default
-    format: tar.gz
+  - formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
     files:
       - README.md
       - LICENSE
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
 
 changelog:
   use: github
@@ -43,17 +59,8 @@ changelog:
       - "^docs:"
       - "^chore:"
       - "^ci:"
+      - "^test:"
 
-homebrew_casks:
-  - name: strava-mcp
-    repository:
-      owner: Stealinglight
-      name: homebrew-tap
-      branch: main
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    binaries:
-      - strava-mcp
-    description: "MCP server for Strava API - local Go binary with zero cloud infrastructure"
-    homepage: "https://github.com/Stealinglight/StravaMCP"
-    commit_msg_template: "Cask update for {{ .ProjectName }} {{ .Tag }}"
-    directory: Casks
+release:
+  draft: false
+  prerelease: auto

@@ -1,29 +1,40 @@
-# Go binary
-strava-mcp
-StravaMCP
+# Built binaries
+/bin/
+/strava-mcp
+/strava-mcp.exe
+/StravaMCP
+/StravaMCP.exe
 *.exe
-*.test
-*.out
 
-# Go vendor (not used, but standard)
-/vendor/
-
-# goreleaser output
-dist/
-
-# Environment variables
+# Credentials and secrets
 .env
 .env.local
 
 # IDE
-.vscode/
 .idea/
+.vscode/
 *.swp
 *.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Test / coverage artifacts
+*.test
+*.out
+coverage
+coverage.out
+coverage.txt
+coverage.html
+*.coverprofile
+
+# goreleaser output
+dist/
+
+# Go vendor (not used, but standard)
+/vendor/
 
 # Logs
 *.log
@@ -34,3 +45,6 @@ temp/
 
 # Planning files (local only)
 .planning/
+
+# Claude Code
+.claude/

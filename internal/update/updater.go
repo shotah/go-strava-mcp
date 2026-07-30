@@ -64,18 +64,18 @@ func CheckWritePermission(binaryPath string) error {
 }
 
 // archiveName returns the goreleaser archive name for the current platform.
-// Format: StravaMCP_{version}_{os}_{arch}.tar.gz
+// Format: strava-mcp_{version}_{os}_{arch}.tar.gz
 // The version's "v" prefix is stripped (goreleaser uses bare version numbers).
 func archiveName(version string) string {
 	ver := strings.TrimPrefix(version, "v")
-	return fmt.Sprintf("StravaMCP_%s_%s_%s.tar.gz", ver, runtime.GOOS, runtime.GOARCH)
+	return fmt.Sprintf("strava-mcp_%s_%s_%s.tar.gz", ver, runtime.GOOS, runtime.GOARCH)
 }
 
 // checksumsName returns the goreleaser checksums filename.
-// Format: StravaMCP_{version}_checksums.txt
+// Format: strava-mcp_{version}_checksums.txt
 func checksumsName(version string) string {
 	ver := strings.TrimPrefix(version, "v")
-	return fmt.Sprintf("StravaMCP_%s_checksums.txt", ver)
+	return fmt.Sprintf("strava-mcp_%s_checksums.txt", ver)
 }
 
 // findAssetURL searches the release assets for a file by name and returns its download URL.

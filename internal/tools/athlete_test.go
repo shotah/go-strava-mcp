@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/Stealinglight/StravaMCP/internal/tools"
+	"github.com/shotah/go-strava-mcp/internal/tools"
 )
 
 // --- get_athlete tests ---

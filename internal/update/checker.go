@@ -50,7 +50,7 @@ type githubRelease struct {
 func NewChecker(currentVersion string, cache *Cache, logger *slog.Logger) *Checker {
 	c := &Checker{
 		httpClient: &http.Client{Timeout: 5 * time.Second},
-		apiURL:     "https://api.github.com/repos/Stealinglight/StravaMCP/releases/latest",
+		apiURL:     "https://api.github.com/repos/shotah/go-strava-mcp/releases/latest",
 		cache:      cache,
 		rawVersion: currentVersion,
 		logger:     logger,
@@ -62,7 +62,7 @@ func NewChecker(currentVersion string, cache *Cache, logger *slog.Logger) *Check
 	if err == nil {
 		c.currentVer = v
 	}
-	// If parse fails (e.g. "dev"), currentVer stays nil → IsDev() returns true.
+	// If parse fails (e.g. "dev"), currentVer stays nil â†’ IsDev() returns true.
 
 	return c
 }
@@ -79,7 +79,7 @@ func (c *Checker) IsDev() bool {
 }
 
 // Check queries the GitHub Releases API and compares the latest tag against
-// the current version. It does NOT read or write the cache — use
+// the current version. It does NOT read or write the cache â€” use
 // CheckWithCooldown for cache-gated checks.
 func (c *Checker) Check(ctx context.Context) (*Result, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.apiURL, nil)
@@ -136,7 +136,7 @@ func (c *Checker) CheckWithCooldown(ctx context.Context, cooldown time.Duration)
 	if !c.cache.ShouldCheck(cooldown) {
 		data, err := c.cache.Read()
 		if err != nil {
-			// Cache unreadable after ShouldCheck said "don't check" — skip silently.
+			// Cache unreadable after ShouldCheck said "don't check" â€” skip silently.
 			return nil, nil
 		}
 		// Reconstruct a Result from cached data.
@@ -179,7 +179,7 @@ func (c *Checker) FormatNotification(r *Result) string {
 	current := ensureVPrefix(r.CurrentVersion)
 	latest := ensureVPrefix(r.LatestVersion)
 	return fmt.Sprintf(
-		"A new release of strava-mcp is available: %s -> %s\nhttps://github.com/Stealinglight/StravaMCP/releases/latest",
+		"A new release of strava-mcp is available: %s -> %s\nhttps://github.com/shotah/go-strava-mcp/releases/latest",
 		current, latest,
 	)
 }

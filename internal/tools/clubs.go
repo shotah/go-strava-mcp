@@ -8,7 +8,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
-	"github.com/Stealinglight/StravaMCP/internal/strava"
+	"github.com/shotah/go-strava-mcp/internal/strava"
 )
 
 var getClubActivitiesTool = mcp.NewTool("strava_get_club_activities",

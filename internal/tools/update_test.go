@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Stealinglight/StravaMCP/internal/tools"
-	"github.com/Stealinglight/StravaMCP/internal/update"
+	"github.com/shotah/go-strava-mcp/internal/tools"
+	"github.com/shotah/go-strava-mcp/internal/update"
 )
 
 // newTestCheckerWithServer creates a Checker pointed at a test HTTP server.
@@ -20,7 +20,7 @@ func newTestCheckerWithServer(t *testing.T, serverURL string, version string) *u
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cache := update.NewCache(t.TempDir())
 	checker := update.NewChecker(version, cache, logger)
-	checker.SetAPIURL(serverURL + "/repos/Stealinglight/StravaMCP/releases/latest")
+	checker.SetAPIURL(serverURL + "/repos/shotah/go-strava-mcp/releases/latest")
 	return checker
 }
 
@@ -34,7 +34,7 @@ func githubReleaseJSON(tagName, htmlURL string) string {
 func TestCheckUpdateBasic(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(githubReleaseJSON("v2.0.0", "https://github.com/Stealinglight/StravaMCP/releases/tag/v2.0.0")))
+		w.Write([]byte(githubReleaseJSON("v2.0.0", "https://github.com/shotah/go-strava-mcp/releases/tag/v2.0.0")))
 	}))
 	defer srv.Close()
 
@@ -78,7 +78,7 @@ func TestCheckUpdateBasic(t *testing.T) {
 func TestCheckUpdateAlreadyCurrent(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(githubReleaseJSON("v1.0.0", "https://github.com/Stealinglight/StravaMCP/releases/tag/v1.0.0")))
+		w.Write([]byte(githubReleaseJSON("v1.0.0", "https://github.com/shotah/go-strava-mcp/releases/tag/v1.0.0")))
 	}))
 	defer srv.Close()
 
@@ -107,7 +107,7 @@ func TestCheckUpdateAlreadyCurrent(t *testing.T) {
 }
 
 func TestCheckUpdateDevBuild(t *testing.T) {
-	// No server needed — dev builds short-circuit before any network call.
+	// No server needed â€” dev builds short-circuit before any network call.
 	checker := newTestCheckerWithServer(t, "http://localhost:0", "dev")
 	handler := tools.HandleCheckUpdate(checker)
 
@@ -151,7 +151,7 @@ func TestCheckUpdateNetworkError(t *testing.T) {
 func TestCheckUpdateResponseFormat(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(githubReleaseJSON("v3.0.0", "https://github.com/Stealinglight/StravaMCP/releases/tag/v3.0.0")))
+		w.Write([]byte(githubReleaseJSON("v3.0.0", "https://github.com/shotah/go-strava-mcp/releases/tag/v3.0.0")))
 	}))
 	defer srv.Close()
 
@@ -250,10 +250,10 @@ func TestSelfUpdateDevBuild(t *testing.T) {
 
 // TestSelfUpdateHandlerReturnsResult verifies that the handler always returns
 // a result rather than calling os.Exit(). If os.Exit() were called, this test
-// would terminate the test process without reporting results — its very
+// would terminate the test process without reporting results â€” its very
 // completion proves the handler is safe.
 func TestSelfUpdateHandlerReturnsResult(t *testing.T) {
-	// Use a dev build to trigger the early return — the point is to verify
+	// Use a dev build to trigger the early return â€” the point is to verify
 	// the handler returns a result (any result) rather than calling os.Exit().
 	checker := newTestCheckerWithServer(t, "http://localhost:0", "dev")
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -265,7 +265,7 @@ func TestSelfUpdateHandlerReturnsResult(t *testing.T) {
 		t.Fatalf("handler returned Go error (not MCP error): %v", err)
 	}
 	if result == nil {
-		t.Fatal("handler returned nil result — should always return a *CallToolResult")
+		t.Fatal("handler returned nil result â€” should always return a *CallToolResult")
 	}
 	// If we reach here, os.Exit() was not called. Test passes.
 }

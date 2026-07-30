@@ -12,11 +12,11 @@ import (
 	"github.com/pkg/browser"
 
 	mcpserver "github.com/mark3labs/mcp-go/server"
-	"github.com/Stealinglight/StravaMCP/internal/auth"
-	"github.com/Stealinglight/StravaMCP/internal/config"
-	"github.com/Stealinglight/StravaMCP/internal/server"
-	"github.com/Stealinglight/StravaMCP/internal/strava"
-	"github.com/Stealinglight/StravaMCP/internal/update"
+	"github.com/shotah/go-strava-mcp/internal/auth"
+	"github.com/shotah/go-strava-mcp/internal/config"
+	"github.com/shotah/go-strava-mcp/internal/server"
+	"github.com/shotah/go-strava-mcp/internal/strava"
+	"github.com/shotah/go-strava-mcp/internal/update"
 )
 
 var (
@@ -73,7 +73,7 @@ func main() {
 		logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelWarn}))
 		checker := update.NewChecker(Version, cache, logger)
 		if checker.IsDev() {
-			fmt.Fprintf(os.Stderr, "strava-mcp dev build — version check not available\n")
+			fmt.Fprintf(os.Stderr, "strava-mcp dev build â€” version check not available\n")
 			os.Exit(0)
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -100,7 +100,7 @@ func main() {
 		checker := update.NewChecker(Version, cache, logger)
 
 		if checker.IsDev() {
-			fmt.Fprintf(os.Stderr, "strava-mcp dev build — update not available\n")
+			fmt.Fprintf(os.Stderr, "strava-mcp dev build â€” update not available\n")
 			os.Exit(0)
 		}
 
@@ -115,7 +115,7 @@ func main() {
 			binaryPath = exe
 		}
 
-		// Homebrew detection — warn but allow, --force skips warning.
+		// Homebrew detection â€” warn but allow, --force skips warning.
 		if update.IsHomebrew(binaryPath) && !forceUpdate {
 			fmt.Fprintf(os.Stderr, "Installed via Homebrew. Recommended: brew upgrade strava-mcp\n")
 			fmt.Fprintf(os.Stderr, "To update anyway, run: strava-mcp --update --force\n")

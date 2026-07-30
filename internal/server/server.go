@@ -2,9 +2,9 @@ package server
 
 import (
 	mcpserver "github.com/mark3labs/mcp-go/server"
-	"github.com/Stealinglight/StravaMCP/internal/strava"
-	"github.com/Stealinglight/StravaMCP/internal/tools"
-	"github.com/Stealinglight/StravaMCP/internal/update"
+	"github.com/shotah/go-strava-mcp/internal/strava"
+	"github.com/shotah/go-strava-mcp/internal/tools"
+	"github.com/shotah/go-strava-mcp/internal/update"
 )
 
 // Options holds optional dependencies for the MCP server.
@@ -15,7 +15,7 @@ type Options struct {
 }
 
 // New creates a new MCP server with the given version string and Strava client.
-// opts may be nil — update tools are simply not registered in that case.
+// opts may be nil â€” update tools are simply not registered in that case.
 func New(version string, client *strava.Client, opts *Options) *mcpserver.MCPServer {
 	s := mcpserver.NewMCPServer(
 		"strava-mcp",

@@ -17,8 +17,8 @@ import (
 
 	"golang.org/x/sync/singleflight"
 
-	"github.com/Stealinglight/StravaMCP/internal/auth"
-	"github.com/Stealinglight/StravaMCP/internal/config"
+	"github.com/shotah/go-strava-mcp/internal/auth"
+	"github.com/shotah/go-strava-mcp/internal/config"
 )
 
 const (
@@ -171,7 +171,7 @@ func (c *Client) doRequest(ctx context.Context, method, fullURL string, body []b
 
 	respBody, err := c.executeRequest(ctx, method, fullURL, bodyReader(), contentType, tokens.AccessToken)
 	if err != nil {
-		// Check for 401 — retry once after refresh
+		// Check for 401 â€” retry once after refresh
 		var stravaErr *StravaError
 		if errors.As(err, &stravaErr) && stravaErr.StatusCode == http.StatusUnauthorized {
 			tokens, refreshErr := c.refresh(ctx)

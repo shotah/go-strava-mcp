@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Stealinglight/StravaMCP/internal/auth"
+	"github.com/shotah/go-strava-mcp/internal/auth"
 )
 
 // Test 1: Callback handler extracts code from query parameter and sends to channel

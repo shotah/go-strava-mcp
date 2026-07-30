@@ -6,12 +6,12 @@ Thank you for your interest in contributing to StravaMCP! This guide covers ever
 
 Found a bug or have an idea? Open an issue using one of our templates:
 
-- **[Bug Report](https://github.com/Stealinglight/StravaMCP/issues/new?template=bug_report.yml)** -- something broken or unexpected
-- **[Feature Request](https://github.com/Stealinglight/StravaMCP/issues/new?template=feature_request.yml)** -- new tool, enhancement, or improvement
+- **[Bug Report](https://github.com/shotah/go-strava-mcp/issues/new?template=bug_report.yml)** -- something broken or unexpected
+- **[Feature Request](https://github.com/shotah/go-strava-mcp/issues/new?template=feature_request.yml)** -- new tool, enhancement, or improvement
 
 Before opening an issue:
 
-1. Search [existing issues](https://github.com/Stealinglight/StravaMCP/issues) to avoid duplicates
+1. Search [existing issues](https://github.com/shotah/go-strava-mcp/issues) to avoid duplicates
 2. For bugs, include your version (`strava-mcp --version`), OS, and MCP client
 3. For security vulnerabilities, **do not open a public issue** -- see [SECURITY.md](SECURITY.md)
 
@@ -19,15 +19,16 @@ Before opening an issue:
 
 - **Go 1.25+** (match [go.mod](go.mod))
 - **Git**
-- A **Strava API application** — create one at https://www.strava.com/settings/api
+- A **Strava API application** â€” create one at https://www.strava.com/settings/api
 
 ## Development Setup
 
 ```bash
-git clone https://github.com/Stealinglight/StravaMCP.git
-cd StravaMCP
-go build .
-go test ./...
+git clone https://github.com/shotah/go-strava-mcp.git
+cd go-strava-mcp
+make tools          # goimports-reviser + golangci-lint
+make install-hooks  # pre-commit: autofix → lint → test
+make check          # fmt + lint + test
 ```
 
 ## Environment Setup
@@ -53,16 +54,10 @@ This opens your browser to complete Strava authorization and saves tokens locall
 ## Running Tests
 
 ```bash
-# Run all tests
-go test ./...
-
-# Run with verbose output
-go test -v ./...
-
-# Run specific package tests
-go test ./internal/tools/...
-go test ./internal/strava/...
-go test ./internal/auth/...
+make test                    # all packages
+make test PKG=./internal/tools/...
+make coverage                # internal/ packages
+make check                   # fmt + lint + test (same as pre-commit)
 ```
 
 ## Project Structure
@@ -89,7 +84,7 @@ main.go       - Entry point (auth subcommand + MCP server mode)
 1. Fork the repo and create a branch from `main`
 2. Make your changes
 3. Run `go test ./...` and `go vet ./...` before submitting
-4. Open a PR -- the [PR template](https://github.com/Stealinglight/StravaMCP/blob/main/.github/PULL_REQUEST_TEMPLATE.md) will guide you through the checklist
+4. Open a PR -- the [PR template](https://github.com/shotah/go-strava-mcp/blob/main/.github/PULL_REQUEST_TEMPLATE.md) will guide you through the checklist
 5. Follow conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`
 6. Keep PRs focused on a single concern
 

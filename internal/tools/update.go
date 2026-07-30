@@ -9,7 +9,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
-	"github.com/Stealinglight/StravaMCP/internal/update"
+	"github.com/shotah/go-strava-mcp/internal/update"
 )
 
 // checkUpdateResponse is the structured JSON returned by strava_check_update.
@@ -44,7 +44,7 @@ var selfUpdateTool = mcp.NewTool("strava_self_update",
 	mcp.WithDescription(`Updates strava-mcp to the latest version.
 
 Downloads the latest release, verifies the SHA256 checksum, and replaces
-the current binary. The server continues running after the update completes —
+the current binary. The server continues running after the update completes â€”
 restart strava-mcp to use the new version.
 
 Returns structured JSON with:
@@ -113,9 +113,9 @@ func HandleSelfUpdate(checker *update.Checker, updater *update.Updater) server.T
 			binaryPath = exe
 		}
 
-		// Homebrew detection — refuse and hint at brew upgrade.
+		// Homebrew detection â€” refuse and hint at brew upgrade.
 		if update.IsHomebrew(binaryPath) {
-			return mcp.NewToolResultError("strava_self_update: installed via Homebrew — use 'brew upgrade strava-mcp' instead"), nil
+			return mcp.NewToolResultError("strava_self_update: installed via Homebrew â€” use 'brew upgrade strava-mcp' instead"), nil
 		}
 
 		// Permission pre-check before downloading anything.
@@ -123,7 +123,7 @@ func HandleSelfUpdate(checker *update.Checker, updater *update.Updater) server.T
 			return mcp.NewToolResultErrorf("strava_self_update: %v", err), nil
 		}
 
-		// Run the update. Progress is a no-op — MCP tools return structured
+		// Run the update. Progress is a no-op â€” MCP tools return structured
 		// results, not streaming stderr output.
 		progress := func(string) {}
 
@@ -134,7 +134,7 @@ func HandleSelfUpdate(checker *update.Checker, updater *update.Updater) server.T
 		// Check latest version for the response.
 		result, err := checker.Check(ctx)
 		if err != nil {
-			// Update succeeded but we can't determine the version — still report success.
+			// Update succeeded but we can't determine the version â€” still report success.
 			resp := selfUpdateResponse{
 				Updated: true,
 				Message: "Update complete. Restart strava-mcp to use the new version.",

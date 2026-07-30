@@ -51,7 +51,7 @@ func TestCheck_UpdateAvailable(t *testing.T) {
 		}
 		json.NewEncoder(w).Encode(githubRelease{
 			TagName: "v2.0.0",
-			HTMLURL: "https://github.com/Stealinglight/StravaMCP/releases/tag/v2.0.0",
+			HTMLURL: "https://github.com/shotah/go-strava-mcp/releases/tag/v2.0.0",
 		})
 	}))
 	defer srv.Close()
@@ -78,7 +78,7 @@ func TestCheck_UpToDate(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(githubRelease{
 			TagName: "v1.0.0",
-			HTMLURL: "https://github.com/Stealinglight/StravaMCP/releases/tag/v1.0.0",
+			HTMLURL: "https://github.com/shotah/go-strava-mcp/releases/tag/v1.0.0",
 		})
 	}))
 	defer srv.Close()
@@ -280,7 +280,7 @@ func TestFormatNotification_UpdateAvailable(t *testing.T) {
 		LatestVersion:   "v2.0.0",
 	}
 	got := c.FormatNotification(r)
-	want := "A new release of strava-mcp is available: v1.0.0 -> v2.0.0\nhttps://github.com/Stealinglight/StravaMCP/releases/latest"
+	want := "A new release of strava-mcp is available: v1.0.0 -> v2.0.0\nhttps://github.com/shotah/go-strava-mcp/releases/latest"
 	if got != want {
 		t.Errorf("FormatNotification =\n%q\nwant\n%q", got, want)
 	}

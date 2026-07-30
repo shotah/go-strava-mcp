@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Stealinglight/StravaMCP/internal/auth"
-	"github.com/Stealinglight/StravaMCP/internal/config"
-	"github.com/Stealinglight/StravaMCP/internal/strava"
+	"github.com/shotah/go-strava-mcp/internal/auth"
+	"github.com/shotah/go-strava-mcp/internal/config"
+	"github.com/shotah/go-strava-mcp/internal/strava"
 )
 
 // mockTokenStore is a test implementation of auth.TokenStore.

@@ -11,13 +11,13 @@ A production-grade MCP server that gives agent frameworks full access to the Str
 {: .fs-6 .fw-300 }
 
 [Get Started](#quick-start){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
-[View on GitHub](https://github.com/Stealinglight/StravaMCP){: .btn .fs-5 .mb-4 .mb-md-0 }
+[View on GitHub](https://github.com/shotah/go-strava-mcp){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
 
 ## What is this?
 
-**StravaMCP** is a [Model Context Protocol](https://modelcontextprotocol.io) server built in Go for the [OpenClaw/ZeroClaw](https://github.com/Stealinglight) agent framework ecosystem. It connects AI agents to the Strava API through a single static binary on your machine. Communicates over stdio, works with any MCP-compatible client, handles OAuth authentication through an automatic browser flow, and stores tokens locally. No cloud services, no containers, no runtime dependencies.
+**StravaMCP** is a [Model Context Protocol](https://modelcontextprotocol.io) server built in Go for the [OpenClaw/ZeroClaw](https://github.com/shotah) agent framework ecosystem. It connects AI agents to the Strava API through a single static binary on your machine. Communicates over stdio, works with any MCP-compatible client, handles OAuth authentication through an automatic browser flow, and stores tokens locally. No cloud services, no containers, no runtime dependencies.
 
 ### Key Features
 
@@ -52,18 +52,12 @@ Choose your preferred installation method:
 **Option A: Go install**
 
 ```bash
-go install github.com/Stealinglight/StravaMCP@latest
+go install github.com/shotah/go-strava-mcp@latest
 ```
 
-**Option B: Homebrew**
+**Option B: Download binary**
 
-```bash
-brew install Stealinglight/tap/strava-mcp
-```
-
-**Option C: Download binary**
-
-Download the latest binary for your platform from [GitHub Releases](https://github.com/Stealinglight/StravaMCP/releases/latest).
+Download the latest binary for your platform from [GitHub Releases](https://github.com/shotah/go-strava-mcp/releases/latest).
 
 {: .note }
 > **macOS Gatekeeper:** If you download the binary directly, remove the quarantine attribute:
@@ -120,16 +114,16 @@ Restart Claude Desktop and the Strava tools will be available.
 | **Clubs** | 1 tool | Recent activities from club members |
 | **Uploads** | 2 tools | Upload activity files (GPX, TCX, FIT) and check status |
 
-See the [README](https://github.com/Stealinglight/StravaMCP#tool-reference) for the complete tool reference with all 11 tools.
+See the [README](https://github.com/shotah/go-strava-mcp#tool-reference) for the complete tool reference with all 11 tools.
 
 ## Links
 
 - [Agent Framework Integration](integration) -- wire StravaMCP into OpenClaw/ZeroClaw
-- [GitHub Repository](https://github.com/Stealinglight/StravaMCP)
+- [GitHub Repository](https://github.com/shotah/go-strava-mcp)
 - [Strava API Documentation](https://developers.strava.com)
 - [Model Context Protocol](https://modelcontextprotocol.io)
-- [GitHub Releases](https://github.com/Stealinglight/StravaMCP/releases)
+- [GitHub Releases](https://github.com/shotah/go-strava-mcp/releases)
 
 ---
 
-Built with Go by [Stealinglight](https://github.com/Stealinglight)
+Built with Go by [shotah](https://github.com/shotah)

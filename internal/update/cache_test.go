@@ -130,7 +130,7 @@ func TestReadWrite_Roundtrip(t *testing.T) {
 	c := NewCache(dir)
 
 	version := "v3.1.4"
-	url := "https://github.com/Stealinglight/StravaMCP/releases/tag/v3.1.4"
+	url := "https://github.com/shotah/go-strava-mcp/releases/tag/v3.1.4"
 
 	if err := c.Write(version, url); err != nil {
 		t.Fatalf("Write failed: %v", err)

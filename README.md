@@ -1,17 +1,17 @@
-[![Go Version](https://img.shields.io/github/go-mod/go-version/Stealinglight/StravaMCP)](https://go.dev/)
-[![Go Report Card](https://goreportcard.com/badge/github.com/Stealinglight/StravaMCP)](https://goreportcard.com/report/github.com/Stealinglight/StravaMCP)
-[![GoDoc](https://pkg.go.dev/badge/github.com/Stealinglight/StravaMCP)](https://pkg.go.dev/github.com/Stealinglight/StravaMCP)
-[![License](https://img.shields.io/github/license/Stealinglight/StravaMCP)](LICENSE)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/Stealinglight/StravaMCP/release.yml)](https://github.com/Stealinglight/StravaMCP/actions)
-[![Release](https://img.shields.io/github/v/release/Stealinglight/StravaMCP)](https://github.com/Stealinglight/StravaMCP/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/Stealinglight/StravaMCP/total)](https://github.com/Stealinglight/StravaMCP/releases)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/shotah/go-strava-mcp)](https://go.dev/)
+[![Go Report Card](https://goreportcard.com/badge/github.com/shotah/go-strava-mcp)](https://goreportcard.com/report/github.com/shotah/go-strava-mcp)
+[![GoDoc](https://pkg.go.dev/badge/github.com/shotah/go-strava-mcp)](https://pkg.go.dev/github.com/shotah/go-strava-mcp)
+[![License](https://img.shields.io/github/license/shotah/go-strava-mcp)](LICENSE)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/shotah/go-strava-mcp/ci.yml)](https://github.com/shotah/go-strava-mcp/actions)
+[![Release](https://img.shields.io/github/v/release/shotah/go-strava-mcp)](https://github.com/shotah/go-strava-mcp/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/shotah/go-strava-mcp/total)](https://github.com/shotah/go-strava-mcp/releases)
 [![Tools](https://img.shields.io/badge/MCP_Tools-11-blue)](README.md#tool-reference)
 
 # StravaMCP
 
 **A production-grade MCP server that gives agent frameworks full access to the Strava API -- single Go binary, zero infrastructure.**
 
-StravaMCP is a [Model Context Protocol](https://modelcontextprotocol.io) server built in Go for the [OpenClaw/ZeroClaw](https://github.com/Stealinglight) agent framework ecosystem. It connects AI agents to the Strava API through a single static binary running on your machine. Communicates over stdio, works with any MCP-compatible client, handles OAuth authentication through an automatic browser flow, and stores tokens locally. No cloud services, no containers, no runtime dependencies -- just download and run.
+StravaMCP is a [Model Context Protocol](https://modelcontextprotocol.io) server built in Go. It connects AI agents to the Strava API through a single static binary running on your machine. Communicates over stdio, works with any MCP-compatible client, handles OAuth authentication through an automatic browser flow, and stores tokens locally. No cloud services, no containers, no runtime dependencies -- just download and run.
 
 <!-- Terminal recording: run `vhs record.tape` to generate usage.gif, then uncomment the line below -->
 <!-- ![Usage](usage.gif) -->
@@ -34,7 +34,7 @@ graph LR
 - **Concurrent token refresh via singleflight** -- no thundering herd on expired tokens
 - **Atomic write-then-rename token store** -- crash-safe credential persistence
 - **Zero-CGO static binary** -- no C library dependencies, runs anywhere
-- **Cross-platform** -- macOS (Intel + Apple Silicon) and Linux (amd64 + arm64)
+- **Cross-platform** -- macOS (Intel + Apple Silicon), Linux, and Windows (amd64)
 
 ## Why Go?
 
@@ -59,18 +59,12 @@ Choose your preferred installation method:
 **Option A: Go install**
 
 ```bash
-go install github.com/Stealinglight/StravaMCP@latest
+go install github.com/shotah/go-strava-mcp@latest
 ```
 
-**Option B: Homebrew**
+**Option B: Download binary**
 
-```bash
-brew install Stealinglight/tap/strava-mcp
-```
-
-**Option C: Download binary**
-
-Download the latest binary for your platform from [GitHub Releases](https://github.com/Stealinglight/StravaMCP/releases/latest).
+Download the latest binary for your platform from [GitHub Releases](https://github.com/shotah/go-strava-mcp/releases/latest).
 
 > **macOS Gatekeeper note:** If you download the binary directly, macOS may quarantine it. Remove the quarantine attribute before running:
 > ```bash
@@ -120,7 +114,7 @@ Restart your MCP client and the Strava tools will be available.
 
 ## Agent Framework Integration
 
-StravaMCP is part of the [OpenClaw/ZeroClaw](https://github.com/Stealinglight) agent framework ecosystem -- a collection of high-performance MCP servers that give AI agents access to external services via stdio transport.
+StravaMCP is one of several high-performance MCP servers under [shotah](https://github.com/shotah) that give AI agents access to external services via stdio transport.
 
 ```mermaid
 graph TD
@@ -243,5 +237,5 @@ Found a bug or have an idea? See [CONTRIBUTING.md](CONTRIBUTING.md) for developm
 
 - [Strava API Documentation](https://developers.strava.com)
 - [Model Context Protocol Specification](https://modelcontextprotocol.io)
-- [GitHub Releases](https://github.com/Stealinglight/StravaMCP/releases)
+- [GitHub Releases](https://github.com/shotah/go-strava-mcp/releases)
 - [Security Policy](SECURITY.md)

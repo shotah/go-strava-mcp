@@ -1,14 +1,14 @@
 title: StravaMCP
 description: Production-grade MCP server for Strava API -- built in Go for agent frameworks
 
-url: https://stealinglight.github.io
-baseurl: /StravaMCP
+url: https://shotah.github.io
+baseurl: /go-strava-mcp
 
 # Enable GitHub Pages
 remote_theme: just-the-docs/just-the-docs
 
 # Footer content
-footer_content: "Built with Go | <a href=\"https://github.com/Stealinglight/StravaMCP\">View on GitHub</a>"
+footer_content: "Built with Go | <a href=\"https://github.com/shotah/go-strava-mcp\">View on GitHub</a>"
 
 # Back to top link
 back_to_top: true
@@ -31,7 +31,7 @@ search:
 # Aux links
 aux_links:
   "View on GitHub":
-    - "https://github.com/Stealinglight/StravaMCP"
+    - "https://github.com/shotah/go-strava-mcp"
   "Strava API Docs":
     - "https://developers.strava.com"
   "MCP Specification":

@@ -15,10 +15,10 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 
-	"github.com/Stealinglight/StravaMCP/internal/auth"
-	"github.com/Stealinglight/StravaMCP/internal/config"
-	"github.com/Stealinglight/StravaMCP/internal/strava"
-	"github.com/Stealinglight/StravaMCP/internal/tools"
+	"github.com/shotah/go-strava-mcp/internal/auth"
+	"github.com/shotah/go-strava-mcp/internal/config"
+	"github.com/shotah/go-strava-mcp/internal/strava"
+	"github.com/shotah/go-strava-mcp/internal/tools"
 )
 
 // mockTokenStore is a test implementation of auth.TokenStore.

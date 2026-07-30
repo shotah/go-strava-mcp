@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -11,7 +12,11 @@ import (
 // Tests that need the binary call buildTestBinary(t).
 func buildTestBinary(t *testing.T) string {
 	t.Helper()
-	binPath := filepath.Join(t.TempDir(), "strava-mcp-test")
+	name := "strava-mcp-test"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	binPath := filepath.Join(t.TempDir(), name)
 	cmd := exec.Command("go", "build", "-o", binPath, ".")
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {

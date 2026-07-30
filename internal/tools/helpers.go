@@ -6,7 +6,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 
-	"github.com/Stealinglight/StravaMCP/internal/strava"
+	"github.com/shotah/go-strava-mcp/internal/strava"
 )
 
 // FormatResponse pretty-prints raw JSON data with 2-space indentation and

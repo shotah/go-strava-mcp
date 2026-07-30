@@ -163,7 +163,7 @@ func TestCheckWritePermission_ReadOnlyDir(t *testing.T) {
 }
 
 func TestArchiveName(t *testing.T) {
-	expected := fmt.Sprintf("StravaMCP_1.2.0_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
+	expected := fmt.Sprintf("strava-mcp_1.2.0_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
 
 	// With v prefix.
 	if got := archiveName("v1.2.0"); got != expected {
@@ -177,7 +177,7 @@ func TestArchiveName(t *testing.T) {
 }
 
 func TestChecksumsName(t *testing.T) {
-	expected := "StravaMCP_1.2.0_checksums.txt"
+	expected := "strava-mcp_1.2.0_checksums.txt"
 
 	if got := checksumsName("v1.2.0"); got != expected {
 		t.Errorf("checksumsName(\"v1.2.0\") = %q, want %q", got, expected)
@@ -227,13 +227,13 @@ func TestFindAssetURL(t *testing.T) {
 func TestParseChecksum(t *testing.T) {
 	dir := t.TempDir()
 	checksumFile := filepath.Join(dir, "checksums.txt")
-	content := "abc123def456  StravaMCP_1.2.0_darwin_arm64.tar.gz\nfed789abc012  StravaMCP_1.2.0_linux_amd64.tar.gz\n"
+	content := "abc123def456  strava-mcp_1.2.0_darwin_arm64.tar.gz\nfed789abc012  strava-mcp_1.2.0_linux_amd64.tar.gz\n"
 	if err := os.WriteFile(checksumFile, []byte(content), 0644); err != nil {
 		t.Fatal(err)
 	}
 
 	t.Run("found", func(t *testing.T) {
-		hash, err := parseChecksum(checksumFile, "StravaMCP_1.2.0_darwin_arm64.tar.gz")
+		hash, err := parseChecksum(checksumFile, "strava-mcp_1.2.0_darwin_arm64.tar.gz")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -243,7 +243,7 @@ func TestParseChecksum(t *testing.T) {
 	})
 
 	t.Run("second entry", func(t *testing.T) {
-		hash, err := parseChecksum(checksumFile, "StravaMCP_1.2.0_linux_amd64.tar.gz")
+		hash, err := parseChecksum(checksumFile, "strava-mcp_1.2.0_linux_amd64.tar.gz")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -387,7 +387,7 @@ func TestUpdate_FullSuccess(t *testing.T) {
 
 	// Create a test archive with "new binary content".
 	newBinaryContent := "#!/bin/sh\necho new-version"
-	archiveName := fmt.Sprintf("StravaMCP_2.0.0_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
+	archiveName := fmt.Sprintf("strava-mcp_2.0.0_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
 	archivePath := createTestArchive(t, dir, newBinaryContent)
 
 	// Compute the real SHA256 of the archive.
@@ -401,7 +401,7 @@ func TestUpdate_FullSuccess(t *testing.T) {
 
 	// Create checksums content.
 	checksumsContent := fmt.Sprintf("%s  %s\n", archiveHash, archiveName)
-	checksumsFileName := "StravaMCP_2.0.0_checksums.txt"
+	checksumsFileName := "strava-mcp_2.0.0_checksums.txt"
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -493,7 +493,7 @@ func TestUpdate_ChecksumMismatch(t *testing.T) {
 	dir := t.TempDir()
 
 	newBinaryContent := "#!/bin/sh\necho new"
-	archName := fmt.Sprintf("StravaMCP_2.0.0_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
+	archName := fmt.Sprintf("strava-mcp_2.0.0_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
 	archivePath := createTestArchive(t, dir, newBinaryContent)
 
 	archiveBytes, err := os.ReadFile(archivePath)
@@ -503,7 +503,7 @@ func TestUpdate_ChecksumMismatch(t *testing.T) {
 
 	// Wrong checksum on purpose.
 	checksumsContent := fmt.Sprintf("%s  %s\n", "0000000000000000000000000000000000000000000000000000000000000000", archName)
-	checksumsFileName := "StravaMCP_2.0.0_checksums.txt"
+	checksumsFileName := "strava-mcp_2.0.0_checksums.txt"
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {

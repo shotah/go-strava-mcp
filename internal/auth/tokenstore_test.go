@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Stealinglight/StravaMCP/internal/auth"
+	"github.com/shotah/go-strava-mcp/internal/auth"
 )
 
 func TestWriteCreatesDirAndFile(t *testing.T) {

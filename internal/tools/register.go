@@ -2,7 +2,7 @@ package tools
 
 import (
 	"github.com/mark3labs/mcp-go/server"
-	"github.com/Stealinglight/StravaMCP/internal/strava"
+	"github.com/shotah/go-strava-mcp/internal/strava"
 )
 
 // RegisterAll registers all MCP tools with the server.
