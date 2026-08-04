@@ -37,10 +37,23 @@ const (
 // openBrowser is the browser launcher, indirected so tests can stub it.
 var openBrowser = browser.OpenURL
 
-// callbackListenAddr is the OAuth callback bind address. Loopback-only so
-// tests (and local auth) do not open a public port and trip Windows firewall.
+// callbackListenAddr is the OAuth callback bind address.
+// Default 0.0.0.0 so Docker Desktop can publish -p 127.0.0.1:19876:19876
+// (a 127.0.0.1 bind inside the container is invisible to published ports).
+// redirect_uri stays http://localhost:19876/callback for Strava's OAuth client.
+// Override with STRAVA_OAUTH_BIND=127.0.0.1 for loopback-only native auth.
 var callbackListenAddr = func() string {
-	return fmt.Sprintf("127.0.0.1:%d", callbackPort)
+	return oauthCallbackListenAddr(os.Getenv("STRAVA_OAUTH_BIND"))
+}
+
+// oauthCallbackListenAddr resolves the TCP bind address for the OAuth callback.
+// Empty / whitespace bindEnv defaults to 0.0.0.0 (Docker port publish).
+func oauthCallbackListenAddr(bindEnv string) string {
+	host := strings.TrimSpace(bindEnv)
+	if host == "" {
+		host = "0.0.0.0"
+	}
+	return fmt.Sprintf("%s:%d", host, callbackPort)
 }
 
 const successPageHTML = `<!DOCTYPE html>

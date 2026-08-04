@@ -22,6 +22,67 @@ func discardLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
 
+func TestOAuthCallbackListenAddr_DefaultIsAllInterfaces(t *testing.T) {
+	t.Parallel()
+	for _, env := range []string{"", "  ", "\t"} {
+		got := oauthCallbackListenAddr(env)
+		want := "0.0.0.0:19876"
+		if got != want {
+			t.Errorf("oauthCallbackListenAddr(%q) = %q, want %q (Docker publish needs 0.0.0.0)", env, got, want)
+		}
+	}
+}
+
+func TestOAuthCallbackListenAddr_Override(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		env, want string
+	}{
+		{"127.0.0.1", "127.0.0.1:19876"},
+		{" 127.0.0.1 ", "127.0.0.1:19876"},
+		{"localhost", "localhost:19876"},
+	}
+	for _, tc := range cases {
+		if got := oauthCallbackListenAddr(tc.env); got != tc.want {
+			t.Errorf("oauthCallbackListenAddr(%q) = %q, want %q", tc.env, got, tc.want)
+		}
+	}
+}
+
+func TestCallbackListenAddr_ReadsSTRAVA_OAUTH_BIND(t *testing.T) {
+	t.Setenv("STRAVA_OAUTH_BIND", "")
+	if got := callbackListenAddr(); got != "0.0.0.0:19876" {
+		t.Errorf("default callbackListenAddr() = %q, want 0.0.0.0:19876", got)
+	}
+
+	t.Setenv("STRAVA_OAUTH_BIND", "127.0.0.1")
+	if got := callbackListenAddr(); got != "127.0.0.1:19876" {
+		t.Errorf("callbackListenAddr() with STRAVA_OAUTH_BIND=127.0.0.1 = %q, want 127.0.0.1:19876", got)
+	}
+}
+
+func TestBuildAuthorizeURL_RedirectURIIgnoresBindHost(t *testing.T) {
+	// Strava's OAuth client is registered for localhost; bind host must not leak
+	// into redirect_uri even when listening on 0.0.0.0 for Docker.
+	t.Setenv("STRAVA_OAUTH_BIND", "0.0.0.0")
+	u := BuildAuthorizeURL("client", "state")
+	parsed, err := url.Parse(u)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	want := "http://localhost:19876/callback"
+	if got := parsed.Query().Get("redirect_uri"); got != want {
+		t.Errorf("redirect_uri = %q, want %q", got, want)
+	}
+}
+
+// bindOAuthLoopback forces the callback listener onto 127.0.0.1 so flow tests
+// don't open 0.0.0.0 (Windows firewall) while unit tests still cover the default.
+func bindOAuthLoopback(t *testing.T) {
+	t.Helper()
+	t.Setenv("STRAVA_OAUTH_BIND", "127.0.0.1")
+}
+
 func TestGenerateState(t *testing.T) {
 	state, err := generateState()
 	if err != nil {
@@ -125,6 +186,7 @@ func testConfig() *config.Config {
 }
 
 func TestRunOAuthFlow_Success(t *testing.T) {
+	bindOAuthLoopback(t)
 	store := newTestStore(t)
 	stubBrowser(t, func(rawURL string) error {
 		go deliverCallback(t, rawURL, url.Values{"code": {"flow-code"}})
@@ -149,6 +211,7 @@ func TestRunOAuthFlow_Success(t *testing.T) {
 // TestRunOAuthFlow_BrowserFailureStillCompletes covers the fallback that prints
 // the URL when no browser can be launched (headless machines).
 func TestRunOAuthFlow_BrowserFailureStillCompletes(t *testing.T) {
+	bindOAuthLoopback(t)
 	store := newTestStore(t)
 	stubBrowser(t, func(rawURL string) error {
 		go deliverCallback(t, rawURL, url.Values{"code": {"flow-code"}})
@@ -162,6 +225,7 @@ func TestRunOAuthFlow_BrowserFailureStillCompletes(t *testing.T) {
 }
 
 func TestRunOAuthFlow_StravaError(t *testing.T) {
+	bindOAuthLoopback(t)
 	stubBrowser(t, func(rawURL string) error {
 		go deliverCallback(t, rawURL, url.Values{"error": {"access_denied"}})
 		return nil
@@ -178,6 +242,7 @@ func TestRunOAuthFlow_StravaError(t *testing.T) {
 }
 
 func TestRunOAuthFlow_StateMismatch(t *testing.T) {
+	bindOAuthLoopback(t)
 	stubBrowser(t, func(rawURL string) error {
 		go deliverCallback(t, rawURL, url.Values{
 			"code":  {"flow-code"},
@@ -197,6 +262,7 @@ func TestRunOAuthFlow_StateMismatch(t *testing.T) {
 }
 
 func TestRunOAuthFlow_TokenExchangeFailure(t *testing.T) {
+	bindOAuthLoopback(t)
 	failing := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		if _, err := w.Write([]byte(`{"message":"Bad Request"}`)); err != nil {
@@ -221,6 +287,7 @@ func TestRunOAuthFlow_TokenExchangeFailure(t *testing.T) {
 }
 
 func TestRunOAuthFlow_AthleteValidationFailure(t *testing.T) {
+	bindOAuthLoopback(t)
 	failing := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 	}))

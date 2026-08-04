@@ -48,7 +48,7 @@ Checklist:
 - [x] Update MCP server name `strava-mcp` → `strava`
 - [x] Update README / MCP docs examples
 - [x] Tests that assert tool names
-- [ ] Cut release; ai-gantry persona + any hardcoding
+- [x] Cut release; ai-gantry persona + any hardcoding (`v0.0.3` on host; gantry excludes `utility_*`)
 
 ---
 
@@ -68,7 +68,7 @@ Same rule applied to every tool (no dual aliases).
 
 - [x] Full pass over `internal/tools/`
 - [x] No dual aliases (one name set per release — same as google-mcp)
-- [ ] Release notes with old→new table (when cutting the release)
+- [x] Release notes with old→new table (when cutting the release)
 
 ---
 
@@ -78,12 +78,12 @@ Same rule applied to every tool (no dual aliases).
 - [x] Go 1.26
 - [x] Makefile / CI / release / pre-commit / `.vscode/settings.json` (match siblings)
 - [x] Tool rename wave above
-- [ ] Announce breaking change in GitHub Release notes (on next release)
+- [x] Announce breaking change in GitHub Release notes
 
 ---
 
 ## Out of scope / follow-ups
 
 - Changing OAuth / token paths
-- Growing the core tier count until rename ships
-- ai-gantry `TOOLS.md` / persona hardcoding update after release
+- Growing the core tier count
+- ~~ai-gantry persona~~ — done (host on `v0.0.3`; excludes `utility_*`)

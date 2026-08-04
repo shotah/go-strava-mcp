@@ -135,6 +135,7 @@ Release builds also register `utility_check_update` / `utility_self_update` (not
 | `STRAVA_CLIENT_ID` | Yes | — | Strava API client ID |
 | `STRAVA_CLIENT_SECRET` | Yes | — | Strava API client secret |
 | `STRAVA_TOKEN_PATH` | No | `~/.strava/tokens.json` | Token store path |
+| `STRAVA_OAUTH_BIND` | No | `0.0.0.0` | OAuth callback bind host (`0.0.0.0` for Docker `-p`; use `127.0.0.1` for loopback-only). `redirect_uri` stays `http://localhost:19876/callback` |
 | `STRAVA_MCP_NO_UPDATE_CHECK` | No | unset | Set to skip background update check on startup |
 
 ### CLI

@@ -225,11 +225,8 @@ func TestBuildAuthorizeURLContainsRequiredParams(t *testing.T) {
 	if params.Get("client_id") != "test-client-id" {
 		t.Errorf("client_id = %q, want %q", params.Get("client_id"), "test-client-id")
 	}
-	if !strings.Contains(params.Get("redirect_uri"), "19876") {
-		t.Errorf("redirect_uri = %q, want to contain port 19876", params.Get("redirect_uri"))
-	}
-	if !strings.Contains(params.Get("redirect_uri"), "/callback") {
-		t.Errorf("redirect_uri = %q, want to contain /callback", params.Get("redirect_uri"))
+	if got := params.Get("redirect_uri"); got != "http://localhost:19876/callback" {
+		t.Errorf("redirect_uri = %q, want http://localhost:19876/callback (independent of bind host)", got)
 	}
 	if params.Get("response_type") != "code" {
 		t.Errorf("response_type = %q, want %q", params.Get("response_type"), "code")
