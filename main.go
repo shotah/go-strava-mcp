@@ -324,7 +324,7 @@ func runAuth(args []string) error {
 	}
 }
 
-const defaultRedirectURI = "https://shotah.github.io/oauth-catch/"
+const defaultRedirectURI = "https://shotah.github.io/ai-gantry/oauth-catch/"
 
 func runAuthURL(cfg *config.Config) error {
 	redirectURI := os.Getenv("STRAVA_OAUTH_REDIRECT_URI")
