@@ -392,7 +392,7 @@ func TestRunServer_ConfigError(t *testing.T) {
 func TestRunAuth_ConfigError(t *testing.T) {
 	clearStravaEnv(t)
 
-	err := runAuth()
+	err := runAuth(nil)
 	if err == nil {
 		t.Fatal("runAuth() = nil, want a configuration error")
 	}
@@ -479,5 +479,109 @@ func releaseHandler(tag string) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"tag_name":%q,"html_url":"https://example.com/releases/%s","assets":[]}`, tag, tag)
+	}
+}
+
+func TestRun_AuthURLWithoutConfigFails(t *testing.T) {
+	clearStravaEnv(t)
+
+	var buf bytes.Buffer
+	if code := run([]string{"auth", "url"}, &buf); code != 1 {
+		t.Errorf("run(auth url) = %d, want 1 without credentials", code)
+	}
+	if out := buf.String(); !strings.Contains(out, "configuration error") {
+		t.Errorf("output = %q, want it to mention 'configuration error'", out)
+	}
+}
+
+func TestRun_AuthURLPrintsURL(t *testing.T) {
+	t.Setenv("STRAVA_CLIENT_ID", "test-id")
+	t.Setenv("STRAVA_CLIENT_SECRET", "test-secret")
+	tokenDir := t.TempDir()
+	t.Setenv("STRAVA_TOKEN_PATH", filepath.Join(tokenDir, "tokens.json"))
+	t.Setenv("STRAVA_OAUTH_REDIRECT_URI", "https://example.com/cb")
+
+	var buf bytes.Buffer
+	code := run([]string{"auth", "url"}, &buf)
+	if code != 0 {
+		t.Fatalf("run(auth url) = %d, want 0; stderr: %s", code, buf.String())
+	}
+
+	// The output goes to stdout (os.Stdout), not to the writer.
+	// Verify pending file was created.
+	pendingPath := filepath.Join(tokenDir, "oauth_pending.json")
+	if _, err := os.Stat(pendingPath); err != nil {
+		t.Errorf("pending file not created: %v", err)
+	}
+}
+
+func TestRun_AuthExchangeWithoutConfigFails(t *testing.T) {
+	clearStravaEnv(t)
+
+	var buf bytes.Buffer
+	if code := run([]string{"auth", "exchange", "test-code"}, &buf); code != 1 {
+		t.Errorf("run(auth exchange) = %d, want 1 without credentials", code)
+	}
+	if out := buf.String(); !strings.Contains(out, "configuration error") {
+		t.Errorf("output = %q, want it to mention 'configuration error'", out)
+	}
+}
+
+func TestRun_AuthExchangeMissingCodeFails(t *testing.T) {
+	t.Setenv("STRAVA_CLIENT_ID", "test-id")
+	t.Setenv("STRAVA_CLIENT_SECRET", "test-secret")
+	t.Setenv("STRAVA_TOKEN_PATH", filepath.Join(t.TempDir(), "tokens.json"))
+
+	var buf bytes.Buffer
+	if code := run([]string{"auth", "exchange"}, &buf); code != 1 {
+		t.Errorf("run(auth exchange) = %d, want 1 without code", code)
+	}
+	if out := buf.String(); !strings.Contains(out, "usage") {
+		t.Errorf("output = %q, want it to mention usage", out)
+	}
+}
+
+func TestRun_AuthExchangeNoPendingFails(t *testing.T) {
+	t.Setenv("STRAVA_CLIENT_ID", "test-id")
+	t.Setenv("STRAVA_CLIENT_SECRET", "test-secret")
+	t.Setenv("STRAVA_TOKEN_PATH", filepath.Join(t.TempDir(), "tokens.json"))
+
+	var buf bytes.Buffer
+	if code := run([]string{"auth", "exchange", "some-code"}, &buf); code != 1 {
+		t.Errorf("run(auth exchange) = %d, want 1 without pending", code)
+	}
+	if out := buf.String(); !strings.Contains(out, "no pending") {
+		t.Errorf("output = %q, want it to mention 'no pending'", out)
+	}
+}
+
+func TestRun_AuthUnknownSubcommandFails(t *testing.T) {
+	t.Setenv("STRAVA_CLIENT_ID", "test-id")
+	t.Setenv("STRAVA_CLIENT_SECRET", "test-secret")
+	t.Setenv("STRAVA_TOKEN_PATH", filepath.Join(t.TempDir(), "tokens.json"))
+
+	var buf bytes.Buffer
+	if code := run([]string{"auth", "bogus"}, &buf); code != 1 {
+		t.Errorf("run(auth bogus) = %d, want 1", code)
+	}
+	if out := buf.String(); !strings.Contains(out, "unknown auth subcommand") {
+		t.Errorf("output = %q, want it to mention 'unknown auth subcommand'", out)
+	}
+}
+
+func TestRunAuth_URLSubcommand(t *testing.T) {
+	t.Setenv("STRAVA_CLIENT_ID", "test-id")
+	t.Setenv("STRAVA_CLIENT_SECRET", "test-secret")
+	tokenDir := t.TempDir()
+	t.Setenv("STRAVA_TOKEN_PATH", filepath.Join(tokenDir, "tokens.json"))
+
+	err := runAuth([]string{"url"})
+	if err != nil {
+		t.Fatalf("runAuth(url) error: %v", err)
+	}
+
+	pendingPath := filepath.Join(tokenDir, "oauth_pending.json")
+	if _, err := os.Stat(pendingPath); err != nil {
+		t.Errorf("pending file not created: %v", err)
 	}
 }

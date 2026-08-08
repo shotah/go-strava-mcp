@@ -127,7 +127,7 @@ func TestExchangeCodePostsCorrectFields(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	_, err := auth.ExchangeCode("test-client-id", "test-client-secret", "test-code", srv.URL)
+	_, err := auth.ExchangeCode("test-client-id", "test-client-secret", "test-code", srv.URL, "")
 	if err != nil {
 		t.Fatalf("ExchangeCode() error: %v", err)
 	}
@@ -157,7 +157,7 @@ func TestExchangeCodeReturnsTokens(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	tokens, err := auth.ExchangeCode("id", "secret", "code", srv.URL)
+	tokens, err := auth.ExchangeCode("id", "secret", "code", srv.URL, "")
 	if err != nil {
 		t.Fatalf("ExchangeCode() error: %v", err)
 	}
@@ -242,6 +242,87 @@ func TestBuildAuthorizeURLContainsRequiredParams(t *testing.T) {
 		if !strings.Contains(scope, required) {
 			t.Errorf("scope = %q, missing %q", scope, required)
 		}
+	}
+}
+
+// Test: BuildAuthorizeURLWithPKCE includes PKCE params and custom redirect URI
+func TestBuildAuthorizeURLWithPKCEContainsPKCEParams(t *testing.T) {
+	u := auth.BuildAuthorizeURLWithPKCE("test-id", "test-state", "https://example.com/callback", "test-challenge")
+
+	parsed, err := url.Parse(u)
+	if err != nil {
+		t.Fatalf("parse URL: %v", err)
+	}
+
+	params := parsed.Query()
+
+	if params.Get("client_id") != "test-id" {
+		t.Errorf("client_id = %q, want %q", params.Get("client_id"), "test-id")
+	}
+	if params.Get("redirect_uri") != "https://example.com/callback" {
+		t.Errorf("redirect_uri = %q, want custom redirect URI", params.Get("redirect_uri"))
+	}
+	if params.Get("code_challenge") != "test-challenge" {
+		t.Errorf("code_challenge = %q, want %q", params.Get("code_challenge"), "test-challenge")
+	}
+	if params.Get("code_challenge_method") != "S256" {
+		t.Errorf("code_challenge_method = %q, want %q", params.Get("code_challenge_method"), "S256")
+	}
+	if params.Get("state") != "test-state" {
+		t.Errorf("state = %q, want %q", params.Get("state"), "test-state")
+	}
+	if params.Get("response_type") != "code" {
+		t.Errorf("response_type = %q, want %q", params.Get("response_type"), "code")
+	}
+}
+
+// Test: ExchangeCode sends code_verifier when provided
+func TestExchangeCodeSendsVerifier(t *testing.T) {
+	var gotForm url.Values
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		gotForm, _ = url.ParseQuery(string(body))
+
+		json.NewEncoder(w).Encode(auth.Tokens{
+			AccessToken:  "access",
+			RefreshToken: "refresh",
+			ExpiresAt:    9999999999,
+		})
+	}))
+	defer srv.Close()
+
+	_, err := auth.ExchangeCode("id", "secret", "code", srv.URL, "test-verifier-abc")
+	if err != nil {
+		t.Fatalf("ExchangeCode() error: %v", err)
+	}
+
+	if gotForm.Get("code_verifier") != "test-verifier-abc" {
+		t.Errorf("code_verifier = %q, want %q", gotForm.Get("code_verifier"), "test-verifier-abc")
+	}
+}
+
+// Test: ExchangeCode omits code_verifier when empty
+func TestExchangeCodeOmitsEmptyVerifier(t *testing.T) {
+	var gotBody string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		gotBody = string(body)
+
+		json.NewEncoder(w).Encode(auth.Tokens{
+			AccessToken:  "access",
+			RefreshToken: "refresh",
+			ExpiresAt:    9999999999,
+		})
+	}))
+	defer srv.Close()
+
+	_, err := auth.ExchangeCode("id", "secret", "code", srv.URL, "")
+	if err != nil {
+		t.Fatalf("ExchangeCode() error: %v", err)
+	}
+
+	if strings.Contains(gotBody, "code_verifier") {
+		t.Errorf("body contains code_verifier when verifier is empty: %s", gotBody)
 	}
 }
 

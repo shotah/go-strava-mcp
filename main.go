@@ -103,7 +103,7 @@ func run(args []string, w io.Writer) int {
 
 	// Subcommand dispatch; default is the MCP server.
 	if len(opts.positional) > 0 && opts.positional[0] == "auth" {
-		return report(w, runAuth())
+		return report(w, runAuth(opts.positional[1:]))
 	}
 	return report(w, runServer())
 }
@@ -296,14 +296,59 @@ func startBackgroundUpdateCheck() <-chan struct{} {
 	return done
 }
 
-func runAuth() error {
+func runAuth(args []string) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("configuration error: %w", err)
 	}
-	store := auth.NewFileTokenStore(cfg.TokenPath)
-	if err := auth.RunOAuthFlow(cfg, store, slog.Default()); err != nil {
-		return fmt.Errorf("auth failed: %w", err)
+
+	if len(args) == 0 {
+		store := auth.NewFileTokenStore(cfg.TokenPath)
+		if err := auth.RunOAuthFlow(cfg, store, slog.Default()); err != nil {
+			return fmt.Errorf("auth failed: %w", err)
+		}
+		return nil
 	}
+
+	switch args[0] {
+	case "url":
+		return runAuthURL(cfg)
+	case "exchange":
+		if len(args) < 2 {
+			return errors.New("usage: strava-mcp auth exchange <code>")
+		}
+		store := auth.NewFileTokenStore(cfg.TokenPath)
+		return runAuthExchange(cfg, store, args[1])
+	default:
+		return fmt.Errorf("unknown auth subcommand: %s", args[0])
+	}
+}
+
+const defaultRedirectURI = "https://shotah.github.io/oauth-catch/"
+
+func runAuthURL(cfg *config.Config) error {
+	redirectURI := os.Getenv("STRAVA_OAUTH_REDIRECT_URI")
+	if redirectURI == "" {
+		redirectURI = defaultRedirectURI
+	}
+
+	pendingDir := filepath.Dir(cfg.TokenPath)
+	authURL, err := auth.GenerateAuthURL(cfg.ClientID, pendingDir, redirectURI)
+	if err != nil {
+		return fmt.Errorf("generate auth URL: %w", err)
+	}
+
+	fmt.Printf("open %s\n", authURL)
+	fmt.Println("then paste the code: /auth strava <code>")
+	fmt.Println("guide: https://github.com/shotah/ai-gantry/blob/main/docs/auth.md")
+	return nil
+}
+
+func runAuthExchange(cfg *config.Config, store auth.TokenStore, code string) error {
+	pendingDir := filepath.Dir(cfg.TokenPath)
+	if err := auth.ExchangeAuthCode(cfg, store, pendingDir, code); err != nil {
+		return err
+	}
+	fmt.Printf("strava: authorized \u2713 (tokens \u2192 %s)\n", cfg.TokenPath)
 	return nil
 }

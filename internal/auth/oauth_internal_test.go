@@ -309,7 +309,7 @@ func TestRunOAuthFlow_AthleteValidationFailure(t *testing.T) {
 }
 
 func TestExchangeCode_BadEndpoint(t *testing.T) {
-	if _, err := ExchangeCode("id", "secret", "code", "http://\x7f/invalid"); err == nil {
+	if _, err := ExchangeCode("id", "secret", "code", "http://\x7f/invalid", ""); err == nil {
 		t.Fatal("ExchangeCode() = nil, want an error for an unparseable endpoint")
 	}
 }
@@ -322,12 +322,134 @@ func TestExchangeCode_InvalidJSON(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	_, err := ExchangeCode("id", "secret", "code", srv.URL)
+	_, err := ExchangeCode("id", "secret", "code", srv.URL, "")
 	if err == nil {
 		t.Fatal("ExchangeCode() = nil, want a decode error")
 	}
 	if !strings.Contains(err.Error(), "decode token response") {
 		t.Errorf("error = %v, want it to mention decoding", err)
+	}
+}
+
+func TestGenerateAuthURL_CreatesURLAndPending(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	authURL, err := GenerateAuthURL("test-client", dir, "https://example.com/cb")
+	if err != nil {
+		t.Fatalf("GenerateAuthURL() error: %v", err)
+	}
+
+	parsed, err := url.Parse(authURL)
+	if err != nil {
+		t.Fatalf("parse URL: %v", err)
+	}
+	params := parsed.Query()
+	if params.Get("code_challenge") == "" {
+		t.Error("URL missing code_challenge")
+	}
+	if params.Get("code_challenge_method") != "S256" {
+		t.Errorf("code_challenge_method = %q, want S256", params.Get("code_challenge_method"))
+	}
+	if params.Get("redirect_uri") != "https://example.com/cb" {
+		t.Errorf("redirect_uri = %q, want custom URI", params.Get("redirect_uri"))
+	}
+
+	pending, err := LoadPending(dir)
+	if err != nil {
+		t.Fatalf("LoadPending() error: %v", err)
+	}
+	if pending.Verifier == "" {
+		t.Error("pending verifier is empty")
+	}
+	if pending.RedirectURI != "https://example.com/cb" {
+		t.Errorf("pending redirect_uri = %q, want custom URI", pending.RedirectURI)
+	}
+}
+
+func TestExchangeAuthCode_Success(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	store := NewFileTokenStore(filepath.Join(dir, "tokens.json"))
+
+	pending := &OAuthPending{
+		Verifier:    "test-verifier",
+		State:       "test-state",
+		RedirectURI: "https://example.com/cb",
+		Expires:     time.Now().Add(5 * time.Minute).Unix(),
+	}
+	if err := SavePending(dir, pending); err != nil {
+		t.Fatalf("SavePending() error: %v", err)
+	}
+
+	var gotVerifier string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		form, _ := url.ParseQuery(string(body))
+		gotVerifier = form.Get("code_verifier")
+		json.NewEncoder(w).Encode(Tokens{
+			AccessToken:  "ex-access",
+			RefreshToken: "ex-refresh",
+			ExpiresAt:    time.Now().Add(6 * time.Hour).Unix(),
+		})
+	}))
+	defer srv.Close()
+
+	cfg := testConfig()
+	if err := exchangeAuthCode(cfg, store, dir, "test-code", srv.URL); err != nil {
+		t.Fatalf("exchangeAuthCode() error: %v", err)
+	}
+
+	if gotVerifier != "test-verifier" {
+		t.Errorf("code_verifier = %q, want %q", gotVerifier, "test-verifier")
+	}
+
+	tokens, err := store.Read()
+	if err != nil {
+		t.Fatalf("tokens not persisted: %v", err)
+	}
+	if tokens.AccessToken != "ex-access" {
+		t.Errorf("AccessToken = %q, want %q", tokens.AccessToken, "ex-access")
+	}
+
+	if _, err := LoadPending(dir); err == nil {
+		t.Error("pending should be deleted after exchange")
+	}
+}
+
+func TestExchangeAuthCode_ExpiredPending(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	store := NewFileTokenStore(filepath.Join(dir, "tokens.json"))
+
+	pending := &OAuthPending{
+		Verifier: "v", State: "s", RedirectURI: "u",
+		Expires: time.Now().Add(-1 * time.Minute).Unix(),
+	}
+	if err := SavePending(dir, pending); err != nil {
+		t.Fatalf("SavePending() error: %v", err)
+	}
+
+	err := exchangeAuthCode(testConfig(), store, dir, "code", "http://unused")
+	if err == nil {
+		t.Fatal("exchangeAuthCode() = nil, want expiry error")
+	}
+	if !strings.Contains(err.Error(), "expired") {
+		t.Errorf("error = %v, want it to mention expiry", err)
+	}
+}
+
+func TestExchangeAuthCode_MissingPending(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	store := NewFileTokenStore(filepath.Join(dir, "tokens.json"))
+
+	err := exchangeAuthCode(testConfig(), store, dir, "code", "http://unused")
+	if err == nil {
+		t.Fatal("exchangeAuthCode() = nil, want missing pending error")
+	}
+	if !strings.Contains(err.Error(), "no pending") {
+		t.Errorf("error = %v, want it to mention no pending authorization", err)
 	}
 }
 

@@ -157,14 +157,82 @@ func NewCallbackHandler(expectedState string, codeCh chan<- string, errCh chan<-
 	})
 }
 
+// BuildAuthorizeURLWithPKCE constructs the Strava OAuth authorization URL with
+// PKCE S256 challenge and a custom redirect URI for non-interactive flows.
+func BuildAuthorizeURLWithPKCE(clientID, state, redirectURI, codeChallenge string) string {
+	params := url.Values{
+		"client_id":             {clientID},
+		"redirect_uri":          {redirectURI},
+		"response_type":         {"code"},
+		"scope":                 {oauthScopes},
+		"state":                 {state},
+		"approval_prompt":       {"force"},
+		"code_challenge":        {codeChallenge},
+		"code_challenge_method": {"S256"},
+	}
+	return authorizeURL + "?" + params.Encode()
+}
+
+// GenerateAuthURL creates a PKCE-secured authorization URL and persists the
+// pending state (verifier, state, redirect_uri, TTL) under pendingDir.
+func GenerateAuthURL(clientID, pendingDir, redirectURI string) (string, error) {
+	state, err := generateState()
+	if err != nil {
+		return "", err
+	}
+	verifier, challenge, err := GeneratePKCE()
+	if err != nil {
+		return "", err
+	}
+	authURL := BuildAuthorizeURLWithPKCE(clientID, state, redirectURI, challenge)
+	pending := &OAuthPending{
+		Verifier:    verifier,
+		State:       state,
+		RedirectURI: redirectURI,
+		Expires:     time.Now().Add(pendingTTL).Unix(),
+	}
+	if err := SavePending(pendingDir, pending); err != nil {
+		return "", err
+	}
+	return authURL, nil
+}
+
+// ExchangeAuthCode loads the pending state, exchanges the authorization code
+// with the PKCE verifier, writes tokens via store, and deletes the pending state.
+func ExchangeAuthCode(cfg *config.Config, store TokenStore, pendingDir, code string) error {
+	return exchangeAuthCode(cfg, store, pendingDir, code, tokenURL)
+}
+
+// exchangeAuthCode is the implementation behind ExchangeAuthCode. The endpoint
+// is a parameter so tests can point it at a local server.
+func exchangeAuthCode(cfg *config.Config, store TokenStore, pendingDir, code, tokenEndpoint string) error {
+	pending, err := LoadPending(pendingDir)
+	if err != nil {
+		return err
+	}
+	tokens, err := ExchangeCode(cfg.ClientID, cfg.ClientSecret, code, tokenEndpoint, pending.Verifier)
+	if err != nil {
+		return err
+	}
+	if err := store.Write(tokens); err != nil {
+		return fmt.Errorf("persist tokens: %w", err)
+	}
+	_ = DeletePending(pendingDir)
+	return nil
+}
+
 // ExchangeCode exchanges an authorization code for tokens by POSTing to the Strava token endpoint.
 // The tokenEndpoint parameter allows overriding for tests; pass tokenURL for production.
-func ExchangeCode(clientID, clientSecret, code, tokenEndpoint string) (*Tokens, error) {
+// If codeVerifier is non-empty it is sent as the code_verifier form field (PKCE).
+func ExchangeCode(clientID, clientSecret, code, tokenEndpoint, codeVerifier string) (*Tokens, error) {
 	data := url.Values{
 		"client_id":     {clientID},
 		"client_secret": {clientSecret},
 		"code":          {code},
 		"grant_type":    {"authorization_code"},
+	}
+	if codeVerifier != "" {
+		data.Set("code_verifier", codeVerifier)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, tokenEndpoint, strings.NewReader(data.Encode()))
@@ -287,7 +355,7 @@ func runOAuthFlow(cfg *config.Config, store TokenStore, logger *slog.Logger, tok
 
 	select {
 	case code := <-codeCh:
-		tokens, err := ExchangeCode(cfg.ClientID, cfg.ClientSecret, code, tokenEndpoint)
+		tokens, err := ExchangeCode(cfg.ClientID, cfg.ClientSecret, code, tokenEndpoint, "")
 		if err != nil {
 			return err
 		}
