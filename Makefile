@@ -25,49 +25,53 @@ EXE := .exe
 else
 EXE :=
 endif
+# go install lands here; snap/PATH often misses it (pre-commit + make fmt).
 GOBIN_DIR := $(shell go env GOBIN)
-ifeq ($(GOBIN_DIR),)
+ifeq ($(strip $(GOBIN_DIR)),)
 GOBIN_DIR := $(shell go env GOPATH)/bin
+endif
+ifneq ($(OS),Windows_NT)
+export PATH := $(GOBIN_DIR):$(PATH)
 endif
 
 ##@ Getting oriented
 
 help: ## Show this help
-	@echo.
-	@echo Usage:  make ^<target^>
-	@echo.
-	@echo Getting oriented
-	@echo   help                   Show this help
-	@echo.
-	@echo Daily loop (format -^> lint -^> test)
-	@echo   fmt                    Format imports/code (goimports-reviser)
-	@echo   vet                    Static analysis (go vet)
-	@echo   lint                   Full lint suite (golangci-lint)
-	@echo   test                   Unit tests
-	@echo   test-short             Unit tests with -short
-	@echo   test-race              Unit tests with the race detector
-	@echo   coverage               Coverage report + fail if under MIN_COVERAGE (70)
-	@echo   check                  Autofix, lint, tests + coverage gate (pre-commit)
-	@echo.
-	@echo Build ^& run
-	@echo   build                  Compile all packages (sanity check)
-	@echo   cli                    Build the MCP binary into ./bin/$(BINARY)
-	@echo   install                Install binary into GOPATH/bin
-	@echo   run                    go run CLI  (make run ARGS="--help")
-	@echo.
-	@echo Modules ^& cleanup
-	@echo   tidy                   Sync go.mod / go.sum with imports
-	@echo   deps                   Download module deps
-	@echo   clean                  Remove binaries and coverage artifacts
-	@echo.
-	@echo Project-specific
-	@echo   install-hooks          Install git pre-commit (autofix + lint + coverage)
-	@echo   version                Show current VERSION file + latest git tag
-	@echo   release                Bump tag + latest, update VERSION, push (BUMP=patch^|minor^|major)
-	@echo.
-	@echo Tooling
-	@echo   tools                  Install goimports-reviser + golangci-lint v2
-	@echo.
+	@echo ""
+	@echo "Usage:  make <target>"
+	@echo ""
+	@echo "Getting oriented"
+	@echo "  help                   Show this help"
+	@echo ""
+	@echo "Daily loop (format -> lint -> test)"
+	@echo "  fmt                    Format imports/code (goimports-reviser)"
+	@echo "  vet                    Static analysis (go vet)"
+	@echo "  lint                   Full lint suite (golangci-lint)"
+	@echo "  test                   Unit tests"
+	@echo "  test-short             Unit tests with -short"
+	@echo "  test-race              Unit tests with the race detector"
+	@echo "  coverage               Coverage report + fail if under MIN_COVERAGE (70)"
+	@echo "  check                  Autofix, lint, tests + coverage gate (pre-commit)"
+	@echo ""
+	@echo "Build & run"
+	@echo "  build                  Compile all packages (sanity check)"
+	@echo "  cli                    Build the MCP binary into ./bin/$(BINARY)"
+	@echo "  install                Install binary into GOPATH/bin"
+	@echo "  run                    go run CLI  (make run ARGS=\"--help\")"
+	@echo ""
+	@echo "Modules & cleanup"
+	@echo "  tidy                   Sync go.mod / go.sum with imports"
+	@echo "  deps                   Download module deps"
+	@echo "  clean                  Remove binaries and coverage artifacts"
+	@echo ""
+	@echo "Project-specific"
+	@echo "  install-hooks          Install git pre-commit (autofix + lint + coverage)"
+	@echo "  version                Show current VERSION file + latest git tag"
+	@echo "  release                Bump tag + latest, update VERSION, push (BUMP=patch|minor|major)"
+	@echo ""
+	@echo "Tooling"
+	@echo "  tools                  Install goimports-reviser + golangci-lint v2"
+	@echo ""
 
 ##@ Daily loop (format → lint → test)
 
@@ -174,4 +178,4 @@ release: ## Bump version + latest tags, update VERSION, push (BUMP=patch|minor|m
 tools: ## Install goimports-reviser + golangci-lint v2 into $$GOBIN
 	go install github.com/incu6us/goimports-reviser/v3@latest
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
-	@echo Installed tools. Ensure GOPATH/bin is on PATH, then: golangci-lint version
+	@echo Installed to $(GOBIN_DIR). make fmt / the pre-commit hook prepend that dir to PATH.
