@@ -13,4 +13,6 @@ func RegisterAll(s *server.MCPServer, client *strava.Client) {
 	registerStreams(s, client)
 	registerClubs(s, client)
 	registerUploads(s, client)
+	registerRoutes(s, client)
+	registerURLs(s, client)
 }

@@ -111,6 +111,14 @@ An agent can track club member activities for leaderboards or summaries:
 
 1. `clubs_list_activities` -- fetch recent activities from all club members
 
+### Saved Routes and Share Links
+
+An agent can pull planned maps the athlete saved in Strava, or open a shortened share URL:
+
+1. `routes_list` -- list saved routes / planned maps
+2. `routes_get` -- fetch a route's map polylines by id
+3. `urls_resolve` -- follow a `strava.app.link` (or full `strava.com`) URL and fetch the route or activity map
+
 ## Performance Characteristics
 
 - Sub-second startup (~10ms)

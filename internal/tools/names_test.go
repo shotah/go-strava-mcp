@@ -23,6 +23,9 @@ var expectedToolNames = []string{
 	"clubs_list_activities",
 	"uploads_create",
 	"uploads_get",
+	"routes_list",
+	"routes_get",
+	"urls_resolve",
 }
 
 func registeredToolNames(t *testing.T, s *mcpserver.MCPServer) map[string]bool {

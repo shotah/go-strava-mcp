@@ -194,6 +194,26 @@ func TestGetAthleteStatsAutoFetchId(t *testing.T) {
 	}
 }
 
+func TestGetAthleteStatsInvalidProfile(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{`))
+	}))
+	defer srv.Close()
+
+	handler := tools.HandleGetAthleteStats(newTestClient(srv.URL))
+	result, err := handler(context.Background(), makeRequest(map[string]any{}))
+	if err != nil {
+		t.Fatalf("handler error: %v", err)
+	}
+	if !result.IsError {
+		t.Fatal("expected error result for unparseable athlete profile")
+	}
+	if !strings.Contains(extractResultText(t, result), "parse athlete profile") {
+		t.Errorf("error = %s", extractResultText(t, result))
+	}
+}
+
 func TestGetAthleteStatsAutoFetchError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/athlete" {

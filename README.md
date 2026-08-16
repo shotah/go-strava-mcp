@@ -13,16 +13,18 @@ Strava MCP server (Go)
 
 <p align="center">
   <strong>Give Claude, Cursor, and other MCP clients real access to your Strava data.</strong><br>
-  Activities, streams, athlete stats, clubs, uploads — one small binary, no runtime.
+  Activities, routes, streams, athlete stats, clubs, uploads — one small binary, no runtime.
 </p>
 
-**11 tools · server id `strava` · single binary · OAuth that just works**
+**14 tools · server id `strava` · single binary · OAuth that just works**
 
 Drop it into your MCP config and ask your agent for recent runs, HR streams, YTD totals, or to update an activity description — over stdio, with tokens stored on your machine.
 
 | Service | What agents can do |
 | ------- | ------------------ |
 | **Activities** | List, get, create, update; zones and streams |
+| **Routes** | List and get saved maps / planned routes |
+| **URLs** | Resolve `strava.app.link` share links and fetch the resource |
 | **Athlete** | Profile and aggregate stats |
 | **Clubs** | Recent club member activities |
 | **Uploads** | Push FIT / TCX / GPX and poll processing |
@@ -117,7 +119,7 @@ Use server id **`strava`** so hosts expose tools as `strava__activities_list`.
 }
 ```
 
-Restart the client. Ask things like “what were my last five runs?” or “show heart-rate stream for activity 123”.
+Restart the client. Ask things like “what were my last five runs?”, “list my saved routes”, or “open this strava.app.link and show the map”.
 
 ## Tool reference
 
@@ -136,6 +138,9 @@ Host-facing names are `{server}__{tool}` → e.g. `strava__activities_list`.
 | `clubs_list_activities` | Recent activities from club members |
 | `uploads_create` | Upload FIT / TCX / GPX |
 | `uploads_get` | Upload processing status |
+| `routes_list` | Saved routes / planned maps (pagination) |
+| `routes_get` | Route detail including map polylines |
+| `urls_resolve` | Resolve `strava.app.link` (or full) URLs and fetch the map/resource |
 
 Release builds also register `utility_check_update` / `utility_self_update` (not present on `dev` builds).
 

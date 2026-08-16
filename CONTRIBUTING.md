@@ -68,7 +68,7 @@ internal/
   config/     - Environment variable loading and validation
   server/     - MCP server setup and tool registration
   strava/     - Strava HTTP client with auto-refresh
-  tools/      - MCP tool handlers (11 tools across 5 categories)
+  tools/      - MCP tool handlers (14 tools across 7 categories)
 main.go       - Entry point (auth subcommand + MCP server mode)
 ```
 

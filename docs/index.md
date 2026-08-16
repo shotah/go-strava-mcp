@@ -22,7 +22,7 @@ A production-grade MCP server that gives agent frameworks full access to the Str
 ### Key Features
 
 - **Single binary, zero runtime dependencies** -- no Docker, no cloud, no database
-- **11 MCP tools** covering activities, athlete stats, streams, clubs, and uploads
+- **14 MCP tools** covering activities, routes, share URLs, athlete stats, streams, clubs, and uploads
 - **Automatic OAuth browser flow** -- one command to authenticate
 - **Concurrent token refresh via singleflight** -- no thundering herd on expired tokens
 - **Atomic write-then-rename token store** -- crash-safe credential persistence
@@ -115,8 +115,10 @@ Restart Claude Desktop and the Strava tools will be available.
 | **Streams** | 1 tool | Time-series telemetry (HR, GPS, power, cadence, altitude) |
 | **Clubs** | 1 tool | Recent activities from club members |
 | **Uploads** | 2 tools | Upload activity files (GPX, TCX, FIT) and check status |
+| **Routes** | 2 tools | List and get saved maps / planned routes |
+| **URLs** | 1 tool | Resolve `strava.app.link` share links and fetch the resource |
 
-See the [README](https://github.com/shotah/go-strava-mcp#tool-reference) for the complete tool reference with all 11 tools.
+See the [README](https://github.com/shotah/go-strava-mcp#tool-reference) for the complete tool reference with all 14 tools.
 
 ## Links
 

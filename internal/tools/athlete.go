@@ -2,7 +2,6 @@ package tools
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -88,22 +87,15 @@ func HandleGetAthlete(client *strava.Client) server.ToolHandlerFunc {
 // When id is omitted (0), auto-fetches the authenticated athlete's ID first.
 func HandleGetAthleteStats(client *strava.Client) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		athleteID := request.GetInt("id", 0)
+		athleteID := int64(request.GetInt("id", 0))
 
 		// Auto-fetch athlete ID if not provided
 		if athleteID == 0 {
-			profileData, err := client.Get(ctx, "/athlete", nil)
+			id, err := authenticatedAthleteID(ctx, client)
 			if err != nil {
 				return HandleToolError("athlete_get_stats", err), nil
 			}
-
-			var profile struct {
-				ID int64 `json:"id"`
-			}
-			if err := json.Unmarshal(profileData, &profile); err != nil {
-				return HandleToolError("athlete_get_stats", fmt.Errorf("parse athlete profile: %w", err)), nil
-			}
-			athleteID = int(profile.ID)
+			athleteID = id
 		}
 
 		data, err := client.Get(ctx, fmt.Sprintf("/athletes/%d/stats", athleteID), nil)
