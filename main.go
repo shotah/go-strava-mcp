@@ -76,6 +76,13 @@ func parseCLI(args []string) cliOptions {
 // run executes the CLI and returns the process exit code. All diagnostics go to
 // w (stderr in production) so stdout stays reserved for MCP JSON-RPC.
 func run(args []string, w io.Writer) int {
+	if len(args) > 0 && args[0] == "host-manifest" {
+		if err := writeHostManifest(os.Stdout); err != nil {
+			fmt.Fprintln(w, err)
+			return 1
+		}
+		return 0
+	}
 	// Safety net: redirect standard log and pkg/browser to stderr.
 	// This prevents any accidental stdout writes that would corrupt MCP JSON-RPC.
 	log.SetOutput(w)
